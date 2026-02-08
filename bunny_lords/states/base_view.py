@@ -10,9 +10,12 @@ import pygame
 from core.state_machine import GameState
 from core.event_bus import EventBus
 from entities.buildings import Building, load_building_defs, BuildingDef
+from entities.troops import Army, load_troop_defs
 from systems.resource_system import ResourceManager
+from systems.training_system import TrainingSystem
 from ui.widgets import (ResourceBar, BuildMenuPanel, BuildingInfoPanel,
                         ToastManager, Button)
+from ui.training_panel import TrainingPanel, ArmyOverviewPanel
 from utils.asset_loader import render_text
 from utils.draw_helpers import (draw_rounded_panel, draw_building_shape,
                                 draw_progress_bar, draw_bunny_icon)
@@ -25,6 +28,7 @@ class BaseViewState(GameState):
 
         # ── Data ─────────────────────────────────────────
         self.building_defs = load_building_defs()
+        self.troop_defs = load_troop_defs()
         self.resource_mgr = ResourceManager()
         self.event_bus: EventBus = game.event_bus
 
@@ -33,6 +37,11 @@ class BaseViewState(GameState):
             [None] * S.GRID_COLS for _ in range(S.GRID_ROWS)
         ]
         self.buildings: list[Building] = []
+
+        # Army & training
+        self.army = Army()
+        self.training_system = TrainingSystem(
+            self.army, self.resource_mgr)
 
         # ── Timers ───────────────────────────────────────
         self.resource_tick_timer = 0.0
@@ -48,13 +57,34 @@ class BaseViewState(GameState):
             on_upgrade=self._on_upgrade,
             on_close=self._close_info
         )
+        self.training_panel = TrainingPanel(
+            self.troop_defs, self.training_system, self.resource_mgr,
+            on_close=lambda: self.training_panel.hide(),
+            on_toast=lambda text, color: self.toasts.show(text, color)
+        )
+        self.army_panel = ArmyOverviewPanel(
+            self.army, self.troop_defs,
+            on_close=lambda: self.army_panel.hide()
+        )
         self.toasts = ToastManager()
 
         # Build button (bottom-right, opens menu)
         self._build_btn = Button(
             pygame.Rect(S.SCREEN_WIDTH - 140, S.SCREEN_HEIGHT - 60, 120, 44),
-            "🔨 Build", self._toggle_build_menu,
+            "Build", self._toggle_build_menu,
             color=S.COLOR_ACCENT
+        )
+        # Army button
+        self._army_btn = Button(
+            pygame.Rect(S.SCREEN_WIDTH - 280, S.SCREEN_HEIGHT - 60, 120, 44),
+            "Army", self._toggle_army_panel,
+            color=S.COLOR_ACCENT2
+        )
+        # Heroes button
+        self._heroes_btn = Button(
+            pygame.Rect(S.SCREEN_WIDTH - 420, S.SCREEN_HEIGHT - 60, 120, 44),
+            "Heroes", lambda: self.game.state_manager.push("hero_management"),
+            color=(180, 140, 220)
         )
         # Back to menu button
         self._menu_btn = Button(
@@ -84,12 +114,20 @@ class BaseViewState(GameState):
     #  Events
     # ══════════════════════════════════════════════════════
     def handle_event(self, event: pygame.event.Event):
-        # UI panels consume events first
+        # UI panels consume events first (overlays on top)
+        if self.training_panel.handle_event(event):
+            return
+        if self.army_panel.handle_event(event):
+            return
         if self.info_panel.handle_event(event):
             return
         if self.build_menu.handle_event(event):
             return
         if self._build_btn.handle_event(event):
+            return
+        if self._army_btn.handle_event(event):
+            return
+        if self._heroes_btn.handle_event(event):
             return
         if self._menu_btn.handle_event(event):
             return
@@ -123,6 +161,10 @@ class BaseViewState(GameState):
                 self.info_panel.hide()
             if event.key == pygame.K_b:
                 self._toggle_build_menu()
+            if event.key == pygame.K_a:
+                self._toggle_army_panel()
+            if event.key == pygame.K_h:
+                self.game.state_manager.push("hero_management")
 
     # ══════════════════════════════════════════════════════
     #  Update
@@ -148,6 +190,15 @@ class BaseViewState(GameState):
                         self.info_panel.building is b):
                     self.info_panel.show(b)
 
+        # Training system
+        trained = self.training_system.update(dt)
+        for troop_id, count in trained:
+            tdef = self.troop_defs.get(troop_id)
+            name = tdef.name if tdef else troop_id
+            self.toasts.show(f"{count}× {name} trained!", S.COLOR_ACCENT2)
+            self.event_bus.emit("troops_trained",
+                                troop_id=troop_id, count=count)
+
         # Particles
         for p in self._particles:
             p["x"] += p["vx"] * dt
@@ -171,8 +222,12 @@ class BaseViewState(GameState):
         self.resource_bar.draw(surface)
         self.build_menu.draw(surface)
         self.info_panel.draw(surface)
+        self.army_panel.draw(surface)
+        self.training_panel.draw(surface)
         self.toasts.draw(surface)
         self._build_btn.draw(surface)
+        self._army_btn.draw(surface)
+        self._heroes_btn.draw(surface)
         self._menu_btn.draw(surface)
 
         # Placement ghost
@@ -327,12 +382,24 @@ class BaseViewState(GameState):
         self.info_panel.show(building)
 
     def _select_building(self, building: Building):
+        # If clicking barracks, open training panel instead
+        if building.id == "barracks" and not building.building:
+            barracks_data = building.definition.get_level_data(building.level)
+            speed = barracks_data.get("training_speed", 1.0) if barracks_data else 1.0
+            self.training_panel.show(building.level, speed)
+            return
         self.info_panel.show(building)
         self._selected_cell = (building.grid_x, building.grid_y)
 
     def _close_info(self):
         self.info_panel.hide()
         self._selected_cell = None
+
+    def _toggle_army_panel(self):
+        if self.army_panel.visible:
+            self.army_panel.hide()
+        else:
+            self.army_panel.show()
 
     def _toggle_build_menu(self):
         if self.build_menu.visible:

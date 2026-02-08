@@ -1,0 +1,58 @@
+{
+  "hero_1": {
+    "name": "Hero 1",
+    "title": "The Brave",
+    "description": "A courageous bunny warrior with balanced combat skills.",
+    "role": "tank",
+    "base_stats": {"hp": 200, "atk": 25, "def": 20, "speed": 10},
+    "growth": {"hp": 18, "atk": 3, "def": 2.5, "speed": 0.5},
+    "color": [220, 160, 80],
+    "abilities": [
+      {"name": "Shield Bash", "description": "Slams enemies with a mighty shield, stunning them.", "damage_mult": 1.5, "unlock_level": 1},
+      {"name": "Rally Cry", "description": "Boosts all allies' attack by 20% for 3 turns.", "buff": {"atk_mult": 1.2, "duration": 3}, "unlock_level": 5},
+      {"name": "Iron Wall", "description": "Reduces incoming damage by 50% for 2 turns.", "buff": {"def_mult": 1.5, "duration": 2}, "unlock_level": 10}
+    ]
+  },
+  "hero_2": {
+    "name": "Hero 2",
+    "title": "The Swift",
+    "description": "A lightning-fast bunny rogue specializing in critical strikes.",
+    "role": "dps",
+    "base_stats": {"hp": 120, "atk": 35, "def": 10, "speed": 20},
+    "growth": {"hp": 10, "atk": 4.5, "def": 1, "speed": 1},
+    "color": [140, 200, 255],
+    "abilities": [
+      {"name": "Quick Strike", "description": "A rapid double-hit dealing 2x damage.", "damage_mult": 2.0, "unlock_level": 1},
+      {"name": "Shadow Step", "description": "Evades next incoming attack completely.", "buff": {"dodge": true, "duration": 1}, "unlock_level": 5},
+      {"name": "Blade Storm", "description": "Hits all enemies for 80% damage.", "damage_mult": 0.8, "aoe": true, "unlock_level": 10}
+    ]
+  },
+  "hero_3": {
+    "name": "Hero 3",
+    "title": "The Wise",
+    "description": "A mystical bunny sage who strengthens armies with knowledge.",
+    "role": "support",
+    "base_stats": {"hp": 150, "atk": 15, "def": 15, "speed": 12},
+    "growth": {"hp": 12, "atk": 2, "def": 2, "speed": 0.8},
+    "color": [180, 140, 220],
+    "abilities": [
+      {"name": "Heal", "description": "Restores 30% HP to the most injured ally.", "heal_pct": 0.3, "unlock_level": 1},
+      {"name": "Wisdom Aura", "description": "Increases all allies' defense by 25% for 3 turns.", "buff": {"def_mult": 1.25, "duration": 3}, "unlock_level": 5},
+      {"name": "Arcane Blast", "description": "Powerful magical attack dealing 3x damage to one target.", "damage_mult": 3.0, "unlock_level": 10}
+    ]
+  },
+  "hero_4": {
+    "name": "Hero 4",
+    "title": "The Fierce",
+    "description": "A berserker bunny who grows stronger as the battle rages.",
+    "role": "dps",
+    "base_stats": {"hp": 160, "atk": 30, "def": 12, "speed": 14},
+    "growth": {"hp": 14, "atk": 4, "def": 1.5, "speed": 0.7},
+    "color": [240, 120, 100],
+    "abilities": [
+      {"name": "Fury Slash", "description": "A savage blow dealing 1.8x damage.", "damage_mult": 1.8, "unlock_level": 1},
+      {"name": "Blood Rage", "description": "Gains +40% attack but loses 10% defense for 3 turns.", "buff": {"atk_mult": 1.4, "def_mult": 0.9, "duration": 3}, "unlock_level": 5},
+      {"name": "Earthquake", "description": "Massive AoE dealing 1.2x damage to all enemies.", "damage_mult": 1.2, "aoe": true, "unlock_level": 10}
+    ]
+  }
+}

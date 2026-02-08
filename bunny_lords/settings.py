@@ -58,6 +58,14 @@ BUILDING_COLORS = {
 AUTOSAVE_INTERVAL = 60.0   # seconds
 RESOURCE_TICK     = 1.0    # seconds between resource production ticks
 
+# ── Troop type colours ───────────────────────────────────
+TROOP_TYPE_COLORS = {
+    "infantry": (200, 140, 140),
+    "cavalry":  (220, 180, 100),
+    "ranged":   (140, 200, 220),
+    "siege":    (180, 140, 100),
+}
+
 # ── Fonts (sizes) ────────────────────────────────────────
 FONT_SM = 16
 FONT_MD = 22

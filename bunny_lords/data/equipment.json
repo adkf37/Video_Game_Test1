@@ -1,0 +1,98 @@
+{
+  "wooden_sword": {
+    "name": "Wooden Sword",
+    "slot": "weapon",
+    "rarity": "common",
+    "stats": {"atk": 5},
+    "color": [160, 110, 60],
+    "description": "A simple training sword. Better than bare paws."
+  },
+  "iron_sword": {
+    "name": "Iron Sword",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "stats": {"atk": 12},
+    "color": [180, 180, 190],
+    "description": "A sturdy blade forged from iron."
+  },
+  "golden_blade": {
+    "name": "Golden Blade",
+    "slot": "weapon",
+    "rarity": "rare",
+    "stats": {"atk": 22, "speed": 3},
+    "color": [255, 215, 0],
+    "description": "A gleaming sword that cuts swift and true."
+  },
+  "leather_vest": {
+    "name": "Leather Vest",
+    "slot": "armor",
+    "rarity": "common",
+    "stats": {"def": 5, "hp": 20},
+    "color": [140, 100, 60],
+    "description": "Basic protection from light blows."
+  },
+  "chainmail": {
+    "name": "Chainmail",
+    "slot": "armor",
+    "rarity": "uncommon",
+    "stats": {"def": 12, "hp": 40},
+    "color": [170, 170, 180],
+    "description": "Interlocking rings provide solid defense."
+  },
+  "crystal_armor": {
+    "name": "Crystal Armor",
+    "slot": "armor",
+    "rarity": "rare",
+    "stats": {"def": 20, "hp": 80},
+    "color": [150, 220, 255],
+    "description": "Enchanted crystal plates. Light yet impenetrable."
+  },
+  "speed_boots": {
+    "name": "Speed Boots",
+    "slot": "accessory",
+    "rarity": "common",
+    "stats": {"speed": 5},
+    "color": [100, 200, 100],
+    "description": "Lightweight boots for quick-footed bunnies."
+  },
+  "lucky_clover": {
+    "name": "Lucky Clover",
+    "slot": "accessory",
+    "rarity": "uncommon",
+    "stats": {"atk": 5, "def": 5, "hp": 25},
+    "color": [80, 200, 80],
+    "description": "A four-leaf clover that brings fortune in battle."
+  },
+  "ruby_pendant": {
+    "name": "Ruby Pendant",
+    "slot": "accessory",
+    "rarity": "rare",
+    "stats": {"atk": 15, "hp": 50},
+    "color": [220, 60, 80],
+    "description": "A fiery gem that empowers its wearer."
+  },
+  "iron_helm": {
+    "name": "Iron Helm",
+    "slot": "helmet",
+    "rarity": "common",
+    "stats": {"def": 4, "hp": 15},
+    "color": [160, 160, 170],
+    "description": "A basic metal helmet."
+  },
+  "war_helm": {
+    "name": "War Helm",
+    "slot": "helmet",
+    "rarity": "uncommon",
+    "stats": {"def": 10, "hp": 35},
+    "color": [200, 160, 80],
+    "description": "A decorated helm for seasoned warriors."
+  },
+  "crown_of_thorns": {
+    "name": "Crown of Thorns",
+    "slot": "helmet",
+    "rarity": "rare",
+    "stats": {"atk": 10, "def": 8, "hp": 30},
+    "color": [200, 180, 50],
+    "description": "A fearsome crown that inspires dread."
+  }
+}
