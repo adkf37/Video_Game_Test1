@@ -28,10 +28,14 @@ class Game:
         from states.main_menu import MainMenuState
         from states.base_view import BaseViewState
         from states.hero_management import HeroManagementState
+        from states.battle_view import BattleViewState
+        from states.world_map import WorldMapState
 
         self.state_manager.register("main_menu", MainMenuState(self))
         self.state_manager.register("base_view", BaseViewState(self))
         self.state_manager.register("hero_management", HeroManagementState(self))
+        self.state_manager.register("battle_view", BattleViewState(self))
+        self.state_manager.register("world_map", WorldMapState(self))
 
         # Start at main menu
         self.state_manager.push("main_menu")

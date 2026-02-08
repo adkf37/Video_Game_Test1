@@ -1,0 +1,92 @@
+{
+    "q_build_5": {
+        "name": "Builder Bunny",
+        "description": "Build 5 buildings",
+        "category": "achievement",
+        "type": "building_complete",
+        "target": 5,
+        "rewards": {"carrots": 500, "wood": 300},
+        "repeatable": false
+    },
+    "q_train_20": {
+        "name": "Growing Army",
+        "description": "Train 20 troops",
+        "category": "achievement",
+        "type": "troops_trained",
+        "target": 20,
+        "rewards": {"carrots": 400, "stone": 200},
+        "repeatable": false
+    },
+    "q_upgrade_castle_3": {
+        "name": "Rising Kingdom",
+        "description": "Upgrade Castle to Level 3",
+        "category": "achievement",
+        "type": "castle_level",
+        "target": 3,
+        "rewards": {"gold": 200, "carrots": 800},
+        "repeatable": false
+    },
+    "q_campaign_3": {
+        "name": "Campaign Veteran",
+        "description": "Complete 3 campaign stages",
+        "category": "achievement",
+        "type": "campaign_complete",
+        "target": 3,
+        "rewards": {"gold": 150, "wood": 500},
+        "repeatable": false
+    },
+    "q_campaign_10": {
+        "name": "Shadow Slayer",
+        "description": "Complete all 10 campaign stages",
+        "category": "achievement",
+        "type": "campaign_complete",
+        "target": 10,
+        "rewards": {"gold": 1000, "carrots": 5000},
+        "repeatable": false
+    },
+    "q_research_3": {
+        "name": "Scholar Bunny",
+        "description": "Complete 3 research projects",
+        "category": "achievement",
+        "type": "research_complete",
+        "target": 3,
+        "rewards": {"gold": 200, "carrots": 600},
+        "repeatable": false
+    },
+    "q_army_500": {
+        "name": "Army Power 500",
+        "description": "Reach 500 total army power",
+        "category": "achievement",
+        "type": "army_power",
+        "target": 500,
+        "rewards": {"carrots": 600, "stone": 400},
+        "repeatable": false
+    },
+    "q_army_2000": {
+        "name": "Mighty Force",
+        "description": "Reach 2000 total army power",
+        "category": "achievement",
+        "type": "army_power",
+        "target": 2000,
+        "rewards": {"gold": 500, "carrots": 2000},
+        "repeatable": false
+    },
+    "q_daily_train": {
+        "name": "Daily Drill",
+        "description": "Train 5 troops",
+        "category": "daily",
+        "type": "troops_trained",
+        "target": 5,
+        "rewards": {"carrots": 200, "wood": 100},
+        "repeatable": true
+    },
+    "q_daily_build": {
+        "name": "Daily Builder",
+        "description": "Build or upgrade 1 building",
+        "category": "daily",
+        "type": "building_complete",
+        "target": 1,
+        "rewards": {"carrots": 150, "stone": 100},
+        "repeatable": true
+    }
+}

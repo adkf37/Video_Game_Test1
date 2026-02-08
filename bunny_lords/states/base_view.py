@@ -11,11 +11,17 @@ from core.state_machine import GameState
 from core.event_bus import EventBus
 from entities.buildings import Building, load_building_defs, BuildingDef
 from entities.troops import Army, load_troop_defs
+from entities.heroes import Hero, load_hero_defs, load_equip_defs, Inventory
 from systems.resource_system import ResourceManager
 from systems.training_system import TrainingSystem
+from systems.combat_system import CampaignData
+from systems.research_system import ResearchSystem
+from systems.quest_system import QuestSystem
 from ui.widgets import (ResourceBar, BuildMenuPanel, BuildingInfoPanel,
                         ToastManager, Button)
 from ui.training_panel import TrainingPanel, ArmyOverviewPanel
+from ui.research_panel import ResearchPanel
+from ui.quest_panel import QuestPanel
 from utils.asset_loader import render_text
 from utils.draw_helpers import (draw_rounded_panel, draw_building_shape,
                                 draw_progress_bar, draw_bunny_icon)
@@ -43,6 +49,23 @@ class BaseViewState(GameState):
         self.training_system = TrainingSystem(
             self.army, self.resource_mgr)
 
+        # Heroes
+        self.hero_defs = load_hero_defs()
+        self.equip_defs = load_equip_defs()
+        self.inventory = Inventory()
+        self.heroes: list[Hero] = [
+            Hero(hdef) for hdef in self.hero_defs.values()
+        ]
+
+        # Campaign / combat
+        self.campaign = CampaignData()
+
+        # Research
+        self.research_system = ResearchSystem(self.resource_mgr)
+
+        # Quests
+        self.quest_system = QuestSystem(self.resource_mgr, self.event_bus)
+
         # ── Timers ───────────────────────────────────────
         self.resource_tick_timer = 0.0
 
@@ -66,6 +89,16 @@ class BaseViewState(GameState):
             self.army, self.troop_defs,
             on_close=lambda: self.army_panel.hide()
         )
+        self.research_panel = ResearchPanel(
+            self.research_system, self.resource_mgr,
+            on_close=lambda: None,
+            on_toast=lambda text, color: self.toasts.show(text, color)
+        )
+        self.quest_panel = QuestPanel(
+            self.quest_system,
+            on_close=lambda: None,
+            on_toast=lambda text, color: self.toasts.show(text, color)
+        )
         self.toasts = ToastManager()
 
         # Build button (bottom-right, opens menu)
@@ -85,6 +118,18 @@ class BaseViewState(GameState):
             pygame.Rect(S.SCREEN_WIDTH - 420, S.SCREEN_HEIGHT - 60, 120, 44),
             "Heroes", lambda: self.game.state_manager.push("hero_management"),
             color=(180, 140, 220)
+        )
+        # World Map button
+        self._map_btn = Button(
+            pygame.Rect(S.SCREEN_WIDTH - 560, S.SCREEN_HEIGHT - 60, 120, 44),
+            "World Map", self._open_world_map,
+            color=(100, 160, 220)
+        )
+        # Quests button
+        self._quests_btn = Button(
+            pygame.Rect(S.SCREEN_WIDTH - 700, S.SCREEN_HEIGHT - 60, 120, 44),
+            "Quests", self._toggle_quests,
+            color=(220, 160, 80)
         )
         # Back to menu button
         self._menu_btn = Button(
@@ -115,6 +160,10 @@ class BaseViewState(GameState):
     # ══════════════════════════════════════════════════════
     def handle_event(self, event: pygame.event.Event):
         # UI panels consume events first (overlays on top)
+        if self.research_panel.handle_event(event):
+            return
+        if self.quest_panel.handle_event(event):
+            return
         if self.training_panel.handle_event(event):
             return
         if self.army_panel.handle_event(event):
@@ -128,6 +177,10 @@ class BaseViewState(GameState):
         if self._army_btn.handle_event(event):
             return
         if self._heroes_btn.handle_event(event):
+            return
+        if self._map_btn.handle_event(event):
+            return
+        if self._quests_btn.handle_event(event):
             return
         if self._menu_btn.handle_event(event):
             return
@@ -165,6 +218,10 @@ class BaseViewState(GameState):
                 self._toggle_army_panel()
             if event.key == pygame.K_h:
                 self.game.state_manager.push("hero_management")
+            if event.key == pygame.K_w:
+                self._open_world_map()
+            if event.key == pygame.K_q:
+                self._toggle_quests()
 
     # ══════════════════════════════════════════════════════
     #  Update
@@ -199,6 +256,23 @@ class BaseViewState(GameState):
             self.event_bus.emit("troops_trained",
                                 troop_id=troop_id, count=count)
 
+        # Research system
+        finished = self.research_system.update(dt)
+        if finished:
+            rdef = self.research_system.defs.get(finished)
+            rname = rdef.name if rdef else finished
+            self.toasts.show(f"Research complete: {rname}!", (80, 140, 220))
+            self.event_bus.emit("research_complete", research_id=finished)
+            # Apply capacity bonuses immediately
+            bonuses = self.research_system.get_bonuses()
+            for res, amt in bonuses.get("capacity_bonus", {}).items():
+                base_cap = self.resource_mgr.get_def(res).get("base_capacity", 5000)
+                self.resource_mgr.capacity[res] = base_cap + amt
+
+        # Quest system — update army power tracking
+        self.quest_system.update_army_power(
+            self.army.total_power(self.troop_defs))
+
         # Particles
         for p in self._particles:
             p["x"] += p["vx"] * dt
@@ -228,7 +302,36 @@ class BaseViewState(GameState):
         self._build_btn.draw(surface)
         self._army_btn.draw(surface)
         self._heroes_btn.draw(surface)
+        self._map_btn.draw(surface)
+        self._quests_btn.draw(surface)
         self._menu_btn.draw(surface)
+
+        # Research & quest overlays (drawn last = on top)
+        self.research_panel.draw(surface)
+        self.quest_panel.draw(surface)
+
+        # Quest claimable indicator on button
+        claimable = self.quest_system.claimable_count
+        if claimable > 0:
+            badge_r = pygame.Rect(self._quests_btn.rect.right - 20,
+                                  self._quests_btn.rect.y - 8, 22, 22)
+            pygame.draw.circle(surface, S.COLOR_DANGER,
+                               badge_r.center, 11)
+            bt = render_text(str(claimable), S.FONT_SM - 4,
+                             S.COLOR_WHITE, bold=True)
+            surface.blit(bt, (badge_r.centerx - bt.get_width() // 2,
+                              badge_r.centery - bt.get_height() // 2))
+
+        # Research progress indicator on academy
+        if self.research_system.is_researching:
+            rdef = self.research_system.defs.get(self.research_system.current)
+            if rdef:
+                rt = render_text(
+                    f"Researching: {rdef.name} ({int(self.research_system.timer)}s)",
+                    S.FONT_SM - 2, (80, 140, 220))
+                surface.blit(rt,
+                             (S.SCREEN_WIDTH // 2 - rt.get_width() // 2,
+                              S.GRID_OFFSET_Y + S.GRID_ROWS * S.TILE_SIZE + 8))
 
         # Placement ghost
         if self._placing and self._hover_cell:
@@ -388,6 +491,10 @@ class BaseViewState(GameState):
             speed = barracks_data.get("training_speed", 1.0) if barracks_data else 1.0
             self.training_panel.show(building.level, speed)
             return
+        # If clicking academy, open research panel
+        if building.id == "academy" and not building.building:
+            self.research_panel.show(building.level)
+            return
         self.info_panel.show(building)
         self._selected_cell = (building.grid_x, building.grid_y)
 
@@ -462,3 +569,22 @@ class BaseViewState(GameState):
                 "color": random.choice([S.COLOR_ACCENT, S.COLOR_ACCENT2,
                                         S.COLOR_WHITE])
             })
+
+    def _open_world_map(self):
+        """Push the world map state with all needed context."""
+        bonuses = self.research_system.get_bonuses()
+        self.game.state_manager.push(
+            "world_map",
+            campaign=self.campaign,
+            army=self.army,
+            resource_mgr=self.resource_mgr,
+            event_bus=self.event_bus,
+            heroes=self.heroes,
+            research_bonuses=bonuses
+        )
+
+    def _toggle_quests(self):
+        if self.quest_panel.visible:
+            self.quest_panel.hide()
+        else:
+            self.quest_panel.show()

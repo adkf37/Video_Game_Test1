@@ -1,0 +1,142 @@
+{
+    "stage_1": {
+        "name": "Carrot Fields",
+        "description": "Rogue bunnies have invaded the carrot fields!",
+        "difficulty": 1,
+        "required_power": 50,
+        "enemies": {
+            "scout_bunny": 5
+        },
+        "rewards": {"carrots": 200, "wood": 100, "xp": 50},
+        "unlock_next": "stage_2"
+    },
+    "stage_2": {
+        "name": "Dark Burrow",
+        "description": "A band of warriors lurks in the dark burrow.",
+        "difficulty": 2,
+        "required_power": 120,
+        "enemies": {
+            "scout_bunny": 8,
+            "warrior_bunny": 3
+        },
+        "rewards": {"carrots": 350, "wood": 200, "stone": 100, "xp": 80},
+        "unlock_next": "stage_3",
+        "requires": "stage_2"
+    },
+    "stage_3": {
+        "name": "Mossy Bridge",
+        "description": "Defend the bridge from mounted raiders.",
+        "difficulty": 3,
+        "required_power": 250,
+        "enemies": {
+            "warrior_bunny": 6,
+            "rider_bunny": 4
+        },
+        "rewards": {"carrots": 500, "wood": 300, "stone": 200, "xp": 120},
+        "unlock_next": "stage_4",
+        "requires": "stage_3"
+    },
+    "stage_4": {
+        "name": "Thornwood Glade",
+        "description": "Archers hide among the thorns.",
+        "difficulty": 4,
+        "required_power": 400,
+        "enemies": {
+            "warrior_bunny": 5,
+            "archer_bunny": 8,
+            "rider_bunny": 3
+        },
+        "rewards": {"carrots": 700, "wood": 400, "stone": 300, "gold": 50, "xp": 160},
+        "unlock_next": "stage_5",
+        "requires": "stage_4"
+    },
+    "stage_5": {
+        "name": "Iron Paw Fortress",
+        "description": "A fortified bunny stronghold blocks the path.",
+        "difficulty": 5,
+        "required_power": 600,
+        "enemies": {
+            "warrior_bunny": 8,
+            "archer_bunny": 6,
+            "knight_bunny": 3
+        },
+        "rewards": {"carrots": 1000, "wood": 600, "stone": 400, "gold": 100, "xp": 220},
+        "unlock_next": "stage_6",
+        "requires": "stage_5"
+    },
+    "stage_6": {
+        "name": "Moonlit Marsh",
+        "description": "Strange bunnies gather under the moon.",
+        "difficulty": 6,
+        "required_power": 850,
+        "enemies": {
+            "rider_bunny": 8,
+            "archer_bunny": 6,
+            "knight_bunny": 4,
+            "holy_bunny": 2
+        },
+        "rewards": {"carrots": 1500, "wood": 800, "stone": 600, "gold": 150, "xp": 300},
+        "unlock_next": "stage_7",
+        "requires": "stage_6"
+    },
+    "stage_7": {
+        "name": "Siege of Bramble Keep",
+        "description": "The enemy brings siege engines!",
+        "difficulty": 7,
+        "required_power": 1200,
+        "enemies": {
+            "warrior_bunny": 10,
+            "knight_bunny": 6,
+            "siege_bunny": 4,
+            "archer_bunny": 5
+        },
+        "rewards": {"carrots": 2000, "wood": 1200, "stone": 800, "gold": 250, "xp": 400},
+        "unlock_next": "stage_8",
+        "requires": "stage_7"
+    },
+    "stage_8": {
+        "name": "Frostpaw Ridge",
+        "description": "Elite winter warriors guard the mountain pass.",
+        "difficulty": 8,
+        "required_power": 1600,
+        "enemies": {
+            "knight_bunny": 8,
+            "holy_bunny": 5,
+            "archer_bunny": 8,
+            "siege_bunny": 3
+        },
+        "rewards": {"carrots": 2500, "wood": 1500, "stone": 1000, "gold": 400, "xp": 500},
+        "unlock_next": "stage_9",
+        "requires": "stage_8"
+    },
+    "stage_9": {
+        "name": "Berserker Valley",
+        "description": "The legendary berserker bunnies roam here!",
+        "difficulty": 9,
+        "required_power": 2200,
+        "enemies": {
+            "berserker_bunny": 6,
+            "knight_bunny": 8,
+            "holy_bunny": 4,
+            "siege_bunny": 5
+        },
+        "rewards": {"carrots": 3500, "wood": 2000, "stone": 1500, "gold": 600, "xp": 700},
+        "unlock_next": "stage_10",
+        "requires": "stage_9"
+    },
+    "stage_10": {
+        "name": "Shadow Throne",
+        "description": "The dark bunny lord awaits on his obsidian throne.",
+        "difficulty": 10,
+        "required_power": 3000,
+        "enemies": {
+            "berserker_bunny": 10,
+            "knight_bunny": 10,
+            "holy_bunny": 6,
+            "siege_bunny": 6,
+            "archer_bunny": 8
+        },
+        "rewards": {"carrots": 5000, "wood": 3000, "stone": 2000, "gold": 1000, "xp": 1000},
+        "requires": "stage_10"
+    }
+}

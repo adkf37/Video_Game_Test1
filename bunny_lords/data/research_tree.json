@@ -1,0 +1,142 @@
+{
+    "eco_carrots_1": {
+        "name": "Carrot Cultivation",
+        "category": "economy",
+        "description": "+20% carrot production",
+        "effect": {"production_bonus": {"carrots": 0.2}},
+        "cost": {"carrots": 300, "wood": 150},
+        "time": 30,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "eco_wood_1": {
+        "name": "Lumber Techniques",
+        "category": "economy",
+        "description": "+20% wood production",
+        "effect": {"production_bonus": {"wood": 0.2}},
+        "cost": {"carrots": 200, "wood": 300},
+        "time": 30,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "eco_stone_1": {
+        "name": "Quarry Efficiency",
+        "category": "economy",
+        "description": "+20% stone production",
+        "effect": {"production_bonus": {"stone": 0.2}},
+        "cost": {"carrots": 200, "stone": 300},
+        "time": 45,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "eco_gold_1": {
+        "name": "Gold Prospecting",
+        "category": "economy",
+        "description": "+20% gold production",
+        "effect": {"production_bonus": {"gold": 0.2}},
+        "cost": {"carrots": 400, "gold": 200},
+        "time": 60,
+        "requires": [],
+        "requires_academy": 2
+    },
+    "eco_capacity_1": {
+        "name": "Expanded Storage",
+        "category": "economy",
+        "description": "+2000 all resource capacity",
+        "effect": {"capacity_bonus": {"carrots": 2000, "wood": 2000, "stone": 2000, "gold": 2000}},
+        "cost": {"wood": 500, "stone": 500},
+        "time": 60,
+        "requires": ["eco_carrots_1", "eco_wood_1"],
+        "requires_academy": 2
+    },
+    "mil_atk_1": {
+        "name": "Sharpened Claws",
+        "category": "military",
+        "description": "+10% troop attack",
+        "effect": {"troop_bonus": {"atk": 0.1}},
+        "cost": {"carrots": 400, "stone": 200},
+        "time": 45,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "mil_def_1": {
+        "name": "Fur Armor",
+        "category": "military",
+        "description": "+10% troop defense",
+        "effect": {"troop_bonus": {"def": 0.1}},
+        "cost": {"carrots": 400, "wood": 200},
+        "time": 45,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "mil_hp_1": {
+        "name": "Endurance Training",
+        "category": "military",
+        "description": "+15% troop HP",
+        "effect": {"troop_bonus": {"hp": 0.15}},
+        "cost": {"carrots": 500, "wood": 300},
+        "time": 60,
+        "requires": ["mil_atk_1"],
+        "requires_academy": 2
+    },
+    "mil_speed_1": {
+        "name": "Swift Paws",
+        "category": "military",
+        "description": "+10% troop speed",
+        "effect": {"troop_bonus": {"speed": 0.1}},
+        "cost": {"carrots": 300, "stone": 200},
+        "time": 45,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "mil_train_1": {
+        "name": "Drill Sergeant",
+        "category": "military",
+        "description": "+25% training speed",
+        "effect": {"training_speed_bonus": 0.25},
+        "cost": {"carrots": 600, "gold": 200},
+        "time": 90,
+        "requires": ["mil_atk_1", "mil_def_1"],
+        "requires_academy": 2
+    },
+    "def_wall_1": {
+        "name": "Reinforced Walls",
+        "category": "defense",
+        "description": "+15% defense when defending base",
+        "effect": {"defense_bonus": 0.15},
+        "cost": {"stone": 500, "wood": 300},
+        "time": 60,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "def_trap_1": {
+        "name": "Bunny Traps",
+        "category": "defense",
+        "description": "Enemies take 5% HP damage before battle",
+        "effect": {"trap_damage": 0.05},
+        "cost": {"wood": 400, "stone": 400},
+        "time": 75,
+        "requires": ["def_wall_1"],
+        "requires_academy": 2
+    },
+    "hero_xp_1": {
+        "name": "War Academy",
+        "category": "hero",
+        "description": "+25% hero XP gained",
+        "effect": {"hero_xp_bonus": 0.25},
+        "cost": {"carrots": 500, "gold": 200},
+        "time": 60,
+        "requires": [],
+        "requires_academy": 1
+    },
+    "hero_stats_1": {
+        "name": "Hero Training Grounds",
+        "category": "hero",
+        "description": "+10% all hero base stats",
+        "effect": {"hero_stat_bonus": 0.1},
+        "cost": {"carrots": 800, "gold": 400},
+        "time": 90,
+        "requires": ["hero_xp_1"],
+        "requires_academy": 2
+    }
+}

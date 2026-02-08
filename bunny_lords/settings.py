@@ -66,6 +66,20 @@ TROOP_TYPE_COLORS = {
     "siege":    (180, 140, 100),
 }
 
+# ── Research category colours ────────────────────────────
+RESEARCH_COLORS = {
+    "economy":  (255, 200, 80),
+    "military": (220, 80, 80),
+    "defense":  (120, 180, 220),
+    "hero":     (180, 140, 255),
+}
+
+# ── Campaign / map colours ───────────────────────────────
+COLOR_MAP_BG       = (25, 30, 45)
+COLOR_NODE_LOCKED  = (90, 90, 100)
+COLOR_NODE_UNLOCKED = (255, 180, 50)
+COLOR_NODE_CLEARED = (100, 220, 160)
+
 # ── Fonts (sizes) ────────────────────────────────────────
 FONT_SM = 16
 FONT_MD = 22
