@@ -7,6 +7,7 @@ from __future__ import annotations
 import pygame
 
 from systems.quest_system import QuestSystem, Quest
+from systems.sound_manager import get_sound_manager
 from utils.asset_loader import render_text
 from utils.draw_helpers import draw_rounded_panel, draw_progress_bar
 from ui.widgets import Button
@@ -91,6 +92,7 @@ class QuestPanel:
                                      q.definition.rewards.items()]
                         self.on_toast(f"Claimed: {', '.join(rew_parts)}",
                                       S.COLOR_ACCENT2)
+                        get_sound_manager().play("quest_complete")
                     return True
             return True
 

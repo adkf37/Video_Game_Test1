@@ -1,9 +1,11 @@
 """
-Main Menu — Title screen with animated bunny and play button.
+Main Menu — Title screen with animated bunny, play/continue, settings.
 """
 import pygame
 import math
 from core.state_machine import GameState
+from systems.sound_manager import get_sound_manager
+from systems.save_system import list_saves, load_game
 from utils.asset_loader import render_text
 from utils.draw_helpers import draw_bunny_icon, draw_rounded_panel
 import settings as S
@@ -12,25 +14,69 @@ import settings as S
 class MainMenuState(GameState):
     def __init__(self, game):
         super().__init__(game)
+        self._sm = get_sound_manager()
         self.time = 0.0
-        self.btn_rect = pygame.Rect(0, 0, 260, 60)
-        self.btn_rect.center = (S.SCREEN_WIDTH // 2, S.SCREEN_HEIGHT // 2 + 100)
-        self.btn_hover = False
         self._particles: list[dict] = []
+        self._has_save = False
+
+        # Buttons — built in enter() once we know save state
+        self._buttons: list[dict] = []
 
     def enter(self, **params):
         self.time = 0.0
+        self._check_saves()
+        self._build_buttons()
+
+    def _check_saves(self):
+        saves = list_saves()
+        self._has_save = len(saves) > 0
+
+    def _build_buttons(self):
+        self._buttons.clear()
+        cx = S.SCREEN_WIDTH // 2
+        by = S.SCREEN_HEIGHT // 2 + 80
+        bw, bh = 260, 52
+        gap = 62
+
+        if self._has_save:
+            self._buttons.append({
+                "rect": pygame.Rect(cx - bw // 2, by, bw, bh),
+                "text": "Continue", "color": S.COLOR_ACCENT2,
+                "action": self._continue_game, "hover": False,
+            })
+            by += gap
+            self._buttons.append({
+                "rect": pygame.Rect(cx - bw // 2, by, bw, bh),
+                "text": "New Game", "color": S.COLOR_BUTTON,
+                "action": self._new_game, "hover": False,
+            })
+        else:
+            self._buttons.append({
+                "rect": pygame.Rect(cx - bw // 2, by, bw, bh),
+                "text": "Play", "color": S.COLOR_BUTTON,
+                "action": self._new_game, "hover": False,
+            })
+        by += gap
+        self._buttons.append({
+            "rect": pygame.Rect(cx - bw // 2, by, bw, bh),
+            "text": "Settings", "color": (100, 100, 140),
+            "action": self._open_settings, "hover": False,
+        })
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.MOUSEMOTION:
-            self.btn_hover = self.btn_rect.collidepoint(event.pos)
+            for btn in self._buttons:
+                btn["hover"] = btn["rect"].collidepoint(event.pos)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.btn_rect.collidepoint(event.pos):
-                self.game.state_manager.replace("base_view")
+            for btn in self._buttons:
+                if btn["rect"].collidepoint(event.pos):
+                    self._sm.play("click")
+                    btn["action"]()
+                    return
 
     def update(self, dt: float):
         self.time += dt
-        # Spawn subtle particles
+        # Particles
         if int(self.time * 10) % 3 == 0:
             import random
             self._particles.append({
@@ -52,19 +98,17 @@ class MainMenuState(GameState):
     def draw(self, surface: pygame.Surface):
         surface.fill(S.COLOR_BG)
 
-        # Particles behind everything
+        # Particles
         for p in self._particles:
-            alpha = min(255, int(180 * (p["life"] / 4.0)))
-            r = p["size"]
             pygame.draw.circle(surface, p["color"],
-                               (int(p["x"]), int(p["y"])), r)
+                               (int(p["x"]), int(p["y"])), p["size"])
 
         # Title
         title_surf = render_text("Bunny Lords", S.FONT_TITLE,
                                  S.COLOR_ACCENT, bold=True)
         title_rect = title_surf.get_rect(
             center=(S.SCREEN_WIDTH // 2,
-                    S.SCREEN_HEIGHT // 2 - 140))
+                    S.SCREEN_HEIGHT // 2 - 160))
         surface.blit(title_surf, title_rect)
 
         # Subtitle
@@ -78,17 +122,36 @@ class MainMenuState(GameState):
         bounce_y = math.sin(self.time * 2.5) * 12
         bunny_rect = pygame.Rect(0, 0, 100, 100)
         bunny_rect.center = (S.SCREEN_WIDTH // 2,
-                             S.SCREEN_HEIGHT // 2 - 20 + int(bounce_y))
+                             S.SCREEN_HEIGHT // 2 - 40 + int(bounce_y))
         draw_bunny_icon(surface, bunny_rect, S.COLOR_WHITE)
 
-        # Play button
-        btn_color = S.COLOR_BUTTON_HOVER if self.btn_hover else S.COLOR_BUTTON
-        draw_rounded_panel(surface, self.btn_rect, btn_color,
-                           border_color=S.COLOR_WHITE, radius=12, alpha=240)
-        btn_text = render_text("Play", S.FONT_LG, S.COLOR_WHITE, bold=True)
-        btn_text_rect = btn_text.get_rect(center=self.btn_rect.center)
-        surface.blit(btn_text, btn_text_rect)
+        # Buttons
+        for btn in self._buttons:
+            bc = S.COLOR_BUTTON_HOVER if btn["hover"] else btn["color"]
+            draw_rounded_panel(surface, btn["rect"], bc,
+                               border_color=S.COLOR_WHITE, radius=12, alpha=240)
+            bt = render_text(btn["text"], S.FONT_LG, S.COLOR_WHITE, bold=True)
+            br = bt.get_rect(center=btn["rect"].center)
+            surface.blit(bt, br)
 
         # Version
-        ver = render_text("v0.1 — Phase 1", S.FONT_SM, S.COLOR_TEXT_DIM)
+        ver = render_text("v1.0 — Bunny Lords", S.FONT_SM, S.COLOR_TEXT_DIM)
         surface.blit(ver, (10, S.SCREEN_HEIGHT - 26))
+
+    # ── Actions ──────────────────────────────────────────
+    def _new_game(self):
+        self.game.state_manager.transition_to("base_view")
+
+    def _continue_game(self):
+        """Load the most recent save and start."""
+        saves = list_saves()
+        if saves:
+            # Access base_view state to load into
+            base_state = self.game.state_manager._registry.get("base_view")
+            if base_state:
+                load_game(base_state, saves[0]["path"])  # type: ignore[arg-type]
+        self.game.state_manager.transition_to("base_view")
+
+    def _open_settings(self):
+        self._sm.play("click")
+        self.game.state_manager.push("settings")

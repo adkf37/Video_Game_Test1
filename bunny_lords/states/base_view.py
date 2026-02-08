@@ -17,11 +17,14 @@ from systems.training_system import TrainingSystem
 from systems.combat_system import CampaignData
 from systems.research_system import ResearchSystem
 from systems.quest_system import QuestSystem
+from systems.sound_manager import get_sound_manager
+from systems.save_system import save_game
 from ui.widgets import (ResourceBar, BuildMenuPanel, BuildingInfoPanel,
                         ToastManager, Button)
 from ui.training_panel import TrainingPanel, ArmyOverviewPanel
 from ui.research_panel import ResearchPanel
 from ui.quest_panel import QuestPanel
+from ui.tooltip import Tooltip
 from utils.asset_loader import render_text
 from utils.draw_helpers import (draw_rounded_panel, draw_building_shape,
                                 draw_progress_bar, draw_bunny_icon)
@@ -68,6 +71,11 @@ class BaseViewState(GameState):
 
         # ── Timers ───────────────────────────────────────
         self.resource_tick_timer = 0.0
+        self.autosave_timer = 0.0
+
+        # ── Sound / Tooltip ──────────────────────────────
+        self._sm = get_sound_manager()
+        self.tooltip = Tooltip()
 
         # ── UI layers ───────────────────────────────────
         self.resource_bar = ResourceBar(self.resource_mgr)
@@ -134,7 +142,7 @@ class BaseViewState(GameState):
         # Back to menu button
         self._menu_btn = Button(
             pygame.Rect(10, S.SCREEN_HEIGHT - 60, 100, 44),
-            "Menu", lambda: self.game.state_manager.replace("main_menu"),
+            "Menu", self._open_pause_menu,
             color=(80, 80, 100)
         )
 
@@ -209,9 +217,12 @@ class BaseViewState(GameState):
         # Keyboard shortcuts
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                self._placing = None
-                self.build_menu.hide()
-                self.info_panel.hide()
+                if self._placing or self.build_menu.visible or self.info_panel.visible:
+                    self._placing = None
+                    self.build_menu.hide()
+                    self.info_panel.hide()
+                else:
+                    self._open_pause_menu()
             if event.key == pygame.K_b:
                 self._toggle_build_menu()
             if event.key == pygame.K_a:
@@ -241,6 +252,7 @@ class BaseViewState(GameState):
                                  S.COLOR_ACCENT2)
                 self.event_bus.emit("building_complete",
                                     building_id=b.id, level=b.level)
+                self._sm.play("build_complete")
                 self._spawn_particles(b.grid_x, b.grid_y, count=20)
                 # Refresh info panel if this building is selected
                 if (self.info_panel.visible and
@@ -255,6 +267,7 @@ class BaseViewState(GameState):
             self.toasts.show(f"{count}× {name} trained!", S.COLOR_ACCENT2)
             self.event_bus.emit("troops_trained",
                                 troop_id=troop_id, count=count)
+            self._sm.play("troop_trained")
 
         # Research system
         finished = self.research_system.update(dt)
@@ -263,6 +276,7 @@ class BaseViewState(GameState):
             rname = rdef.name if rdef else finished
             self.toasts.show(f"Research complete: {rname}!", (80, 140, 220))
             self.event_bus.emit("research_complete", research_id=finished)
+            self._sm.play("research_complete")
             # Apply capacity bonuses immediately
             bonuses = self.research_system.get_bonuses()
             for res, amt in bonuses.get("capacity_bonus", {}).items():
@@ -272,6 +286,34 @@ class BaseViewState(GameState):
         # Quest system — update army power tracking
         self.quest_system.update_army_power(
             self.army.total_power(self.troop_defs))
+
+        # Autosave
+        self.autosave_timer += dt
+        if self.autosave_timer >= S.AUTOSAVE_INTERVAL:
+            self.autosave_timer = 0.0
+            save_game(self, "autosave")
+            self.toasts.show("Auto-saved", S.COLOR_TEXT_DIM, 1.5)
+            self._sm.play("save")
+
+        # Tooltip — building hover info
+        if self._hover_cell and not self._placing:
+            gx, gy = self._hover_cell
+            occupant = self.grid[gy][gx]
+            if occupant:
+                prod = occupant.production
+                tip = f"{occupant.name} (Lv.{occupant.level})"
+                if occupant.building:
+                    tip += f"\nBuilding... {int(occupant.build_progress * 100)}%"
+                elif prod:
+                    parts = [f"+{v}/s {k}" for k, v in prod.items()]
+                    tip += "\n" + ", ".join(parts)
+                self.tooltip.set(f"building_{gx}_{gy}", tip,
+                                 pygame.mouse.get_pos())
+            else:
+                self.tooltip.clear()
+        else:
+            self.tooltip.clear()
+        self.tooltip.update(dt)
 
         # Particles
         for p in self._particles:
@@ -309,6 +351,9 @@ class BaseViewState(GameState):
         # Research & quest overlays (drawn last = on top)
         self.research_panel.draw(surface)
         self.quest_panel.draw(surface)
+
+        # Tooltip (very top)
+        self.tooltip.draw(surface)
 
         # Quest claimable indicator on button
         claimable = self.quest_system.claimable_count
@@ -445,6 +490,7 @@ class BaseViewState(GameState):
             cost = bdef.cost_for(1)
             if not self.resource_mgr.pay(cost):
                 self.toasts.show("Not enough resources!", S.COLOR_DANGER)
+                self._sm.play("error")
                 return None
             bt = bdef.build_time_for(1)
             b.start_build(1, bt)
@@ -454,11 +500,13 @@ class BaseViewState(GameState):
         self.build_menu.hide()
         if not instant:
             self.toasts.show(f"Building {bdef.name}...", S.COLOR_ACCENT)
+            self._sm.play("build_start")
         return b
 
     def _try_place(self, gx: int, gy: int):
         if self.grid[gy][gx] is not None:
             self.toasts.show("Tile occupied!", S.COLOR_DANGER)
+            self._sm.play("error")
             return
         bid = self._placing
         bdef = self.building_defs.get(bid)
@@ -477,11 +525,13 @@ class BaseViewState(GameState):
         cost = building.definition.cost_for(next_lvl)
         if not self.resource_mgr.pay(cost):
             self.toasts.show("Not enough resources!", S.COLOR_DANGER)
+            self._sm.play("error")
             return
         bt = building.definition.build_time_for(next_lvl)
         building.start_build(next_lvl, bt)
         self.toasts.show(f"Upgrading {building.name} to Lv.{next_lvl}...",
                          S.COLOR_ACCENT)
+        self._sm.play("build_start")
         self.info_panel.show(building)
 
     def _select_building(self, building: Building):
@@ -588,3 +638,8 @@ class BaseViewState(GameState):
             self.quest_panel.hide()
         else:
             self.quest_panel.show()
+
+    def _open_pause_menu(self):
+        """Push the pause menu overlay."""
+        self._sm.play("click")
+        self.game.state_manager.push("pause_menu", base_view=self)

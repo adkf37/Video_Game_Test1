@@ -1,6 +1,6 @@
 {
   "hero_1": {
-    "name": "Hero 1",
+    "name": "Fluffy the Savior",
     "title": "The Brave",
     "description": "A courageous bunny warrior with balanced combat skills.",
     "role": "tank",
@@ -14,8 +14,8 @@
     ]
   },
   "hero_2": {
-    "name": "Hero 2",
-    "title": "The Swift",
+    "name": "Rabbiticus the III",
+    "title": "The Awkward",
     "description": "A lightning-fast bunny rogue specializing in critical strikes.",
     "role": "dps",
     "base_stats": {"hp": 120, "atk": 35, "def": 10, "speed": 20},

@@ -4,6 +4,7 @@ Game — Main application class.  Owns the loop, state manager, and event bus.
 import pygame
 from core.state_machine import StateManager
 from core.event_bus import EventBus
+from systems.sound_manager import get_sound_manager
 import settings as S
 
 
@@ -19,10 +20,12 @@ class Game:
         pygame.display.set_caption(S.GAME_TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
+        self.show_fps = True
 
         # Core systems
         self.event_bus = EventBus()
         self.state_manager = StateManager()
+        self.sound_manager = get_sound_manager()
 
         # Register states (imported here to avoid circular deps)
         from states.main_menu import MainMenuState
@@ -30,12 +33,16 @@ class Game:
         from states.hero_management import HeroManagementState
         from states.battle_view import BattleViewState
         from states.world_map import WorldMapState
+        from states.settings_state import SettingsState
+        from states.pause_menu import PauseMenuState
 
         self.state_manager.register("main_menu", MainMenuState(self))
         self.state_manager.register("base_view", BaseViewState(self))
         self.state_manager.register("hero_management", HeroManagementState(self))
         self.state_manager.register("battle_view", BattleViewState(self))
         self.state_manager.register("world_map", WorldMapState(self))
+        self.state_manager.register("settings", SettingsState(self))
+        self.state_manager.register("pause_menu", PauseMenuState(self))
 
         # Start at main menu
         self.state_manager.push("main_menu")
@@ -55,11 +62,12 @@ class Game:
             self.state_manager.draw(self.screen)
 
             # FPS counter (top-right)
-            fps_text = f"FPS: {int(self.clock.get_fps())}"
-            font = pygame.font.SysFont("segoeui", 14)
-            fps_surf = font.render(fps_text, True, S.COLOR_TEXT_DIM)
-            self.screen.blit(fps_surf,
-                             (S.SCREEN_WIDTH - fps_surf.get_width() - 8, 4))
+            if self.show_fps:
+                fps_text = f"FPS: {int(self.clock.get_fps())}"
+                font = pygame.font.SysFont("segoeui", 14)
+                fps_surf = font.render(fps_text, True, S.COLOR_TEXT_DIM)
+                self.screen.blit(fps_surf,
+                                 (S.SCREEN_WIDTH - fps_surf.get_width() - 8, 4))
 
             pygame.display.flip()
 

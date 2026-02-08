@@ -11,6 +11,7 @@ import math
 
 from core.state_machine import GameState
 from systems.combat_system import CombatEngine, BattleUnit, BattleLog
+from systems.sound_manager import get_sound_manager
 from utils.asset_loader import render_text, get_font
 from utils.draw_helpers import draw_rounded_panel, draw_progress_bar, draw_bunny_icon
 from ui.widgets import Button
@@ -87,6 +88,7 @@ class BattleViewState(GameState):
 
     def __init__(self, game):
         super().__init__(game)
+        self._sm = get_sound_manager()
         self.result: dict = {}
         self.log: BattleLog | None = None
         self.stage_data: dict = {}
@@ -256,6 +258,7 @@ class BattleViewState(GameState):
                             fx, fy - 50,
                             f"-{killed} killed", (255, 100, 100)))
                     self._shake_timer = 0.15
+                    self._sm.play("battle_hit")
                     break
         elif etype == "trap":
             damage = entry.get("damage", 0)
@@ -284,6 +287,7 @@ class BattleViewState(GameState):
         self._phase = "result"
 
         victory = self.result.get("victory", False)
+        self._sm.play("victory" if victory else "defeat")
 
         # Apply losses to actual army
         if self._army:
