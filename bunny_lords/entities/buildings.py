@@ -59,10 +59,9 @@ class Building:
         self.build_total = 0.0       # total build time for progress calc
         self._pending_level = level  # level being built towards
         
-        # Stone quarry click mechanic
-        self.click_timer = 0.0       # timer for stone quarries
-        self.clicks_needed = 5       # clicks required every 10 seconds
-        self.current_clicks = 0      # clicks accumulated this cycle
+        # Resource building click bonus mechanic
+        self.click_timer = 0.0       # timer for resource buildings
+        self.click_available = False # whether a bonus click is available
 
     @property
     def id(self) -> str:
@@ -78,10 +77,7 @@ class Building:
         if self.building:
             return {}
         prod = self.definition.production_for(self.level)
-        # Stone quarries require clicking to produce
-        if self.id == "stone_quarry" and "stone" in prod:
-            if self.current_clicks < self.clicks_needed:
-                return {}  # No production until clicked enough
+        # Stone quarries produce automatically (click mechanic disabled)
         return prod
 
     @property
@@ -101,14 +97,28 @@ class Building:
         self.build_timer = build_time
         self.build_total = build_time
 
+    def is_resource_building(self) -> bool:
+        """Check if this is a clickable resource building."""
+        return self.id in ["carrot_farm", "lumber_burrow", "gold_mine", "stone_quarry"]
+    
+    def get_click_bonus_resource(self) -> str | None:
+        """Get the resource type this building gives as click bonus."""
+        resource_map = {
+            "carrot_farm": "carrots",
+            "lumber_burrow": "wood",
+            "gold_mine": "gold",
+            "stone_quarry": "stone"
+        }
+        return resource_map.get(self.id)
+
     def update(self, dt: float) -> bool:
         """Tick timer. Returns True if construction just completed."""
-        # Stone quarry click timer
-        if self.id == "stone_quarry" and not self.building:
+        # Resource building click timer (every 10 seconds)
+        if self.is_resource_building() and not self.building:
             self.click_timer += dt
             if self.click_timer >= 10.0:  # Reset every 10 seconds
                 self.click_timer = 0.0
-                self.current_clicks = 0
+                self.click_available = True
         
         if not self.building:
             return False
@@ -132,7 +142,7 @@ class Building:
             "build_total": self.build_total,
             "_pending_level": self._pending_level,
             "click_timer": self.click_timer,
-            "current_clicks": self.current_clicks,
+            "click_available": self.click_available,
         }
 
     @classmethod
@@ -144,7 +154,7 @@ class Building:
         b.build_total = data.get("build_total", 0)
         b._pending_level = data.get("_pending_level", b.level)
         b.click_timer = data.get("click_timer", 0)
-        b.current_clicks = data.get("current_clicks", 0)
+        b.click_available = data.get("click_available", False)
         return b
 
 

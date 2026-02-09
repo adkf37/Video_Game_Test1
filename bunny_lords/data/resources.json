@@ -4,27 +4,27 @@
     "icon": "🥕",
     "color": [255, 140, 30],
     "starting_amount": 500,
-    "base_capacity": 5000
+    "base_capacity": 10000
   },
   "wood": {
     "name": "Wood",
     "icon": "🪵",
     "color": [160, 110, 60],
     "starting_amount": 300,
-    "base_capacity": 5000
+    "base_capacity": 10000
   },
   "stone": {
     "name": "Stone",
     "icon": "🪨",
     "color": [170, 170, 180],
     "starting_amount": 200,
-    "base_capacity": 5000
+    "base_capacity": 10000
   },
   "gold": {
     "name": "Gold",
     "icon": "💰",
     "color": [255, 215, 0],
-    "starting_amount": 100,
-    "base_capacity": 5000
+    "starting_amount": 150,
+    "base_capacity": 10000
   }
 }

@@ -163,14 +163,8 @@ class BaseViewState(GameState):
         self.buildings.clear()
         self.grid = [[None] * S.GRID_COLS for _ in range(S.GRID_ROWS)]
         
-        # Reset resources to starting values
-        self.resource_mgr.resources = {
-            "gold": 1000, "food": 500, "wood": 300, 
-            "stone": 200, "iron": 0
-        }
-        self.resource_mgr.storage = {
-            "food": 1000, "wood": 1000, "stone": 1000, "iron": 1000
-        }
+        # Reset resources to starting values (reload from resources.json)
+        self.resource_mgr._init_resources()
         
         # Clear army and training queue
         self.army.troops.clear()
@@ -256,16 +250,14 @@ class BaseViewState(GameState):
                 else:
                     occupant = self.grid[gy][gx]
                     if occupant:
-                        # Check if it's a stone quarry needing clicks
-                        if occupant.id == "stone_quarry" and not occupant.building:
-                            if occupant.current_clicks < occupant.clicks_needed:
-                                occupant.current_clicks += 1
-                                self._sm.play("click")
-                                if occupant.current_clicks >= occupant.clicks_needed:
-                                    self.toasts.show(f"Quarry ready to produce!", S.COLOR_ACCENT2, 2.0)
-                                else:
-                                    remaining = occupant.clicks_needed - occupant.current_clicks
-                                    self.toasts.show(f"Quarry: {remaining} more clicks needed", S.COLOR_TEXT_DIM, 1.5)
+                        # Check if it's a resource building with click bonus available
+                        if occupant.is_resource_building() and not occupant.building and occupant.click_available:
+                            resource = occupant.get_click_bonus_resource()
+                            if resource:
+                                self.resource_mgr.add(resource, 15)
+                                occupant.click_available = False
+                                self._sm.play("collect")
+                                self.toasts.show(f"+15 {resource.title()}!", S.COLOR_ACCENT2, 1.5)
                             return
                         self._select_building(occupant)
                     else:
@@ -370,13 +362,13 @@ class BaseViewState(GameState):
                 tip = f"{occupant.name} (Lv.{occupant.level})"
                 if occupant.building:
                     tip += f"\nBuilding... {int(occupant.build_progress * 100)}%"
-                elif occupant.id == "stone_quarry":
-                    if occupant.current_clicks < occupant.clicks_needed:
-                        remaining = occupant.clicks_needed - occupant.current_clicks
-                        tip += f"\nNeeds {remaining} more clicks!"
-                        tip += f"\n(Resets every 10s)"
+                elif occupant.is_resource_building():
+                    if occupant.click_available:
+                        resource = occupant.get_click_bonus_resource()
+                        tip += f"\n✨ Click for +15 {resource}!"
                     else:
-                        tip += "\nReady to produce!"
+                        time_left = 10.0 - occupant.click_timer
+                        tip += f"\n⏱ Bonus in {int(time_left)}s"
                     if prod:
                         parts = [f"+{v}/s {k}" for k, v in prod.items()]
                         tip += "\n" + ", ".join(parts)
@@ -513,13 +505,12 @@ class BaseViewState(GameState):
 
             draw_building_shape(surface, rect, color, b.id)
 
-            # Stone quarry needing clicks — red pulsing border
-            if b.id == "stone_quarry" and not b.building:
-                if b.current_clicks < b.clicks_needed:
-                    import math
-                    pulse = int(80 + 80 * abs(math.sin(pygame.time.get_ticks() / 200)))
-                    border_color = (255, pulse, pulse)
-                    pygame.draw.rect(surface, border_color, rect, width=3, border_radius=6)
+            # Resource buildings with click bonus available — gold pulsing border
+            if b.is_resource_building() and not b.building and b.click_available:
+                import math
+                pulse = int(150 + 105 * abs(math.sin(pygame.time.get_ticks() / 300)))
+                border_color = (255, pulse, 50)  # Gold/yellow
+                pygame.draw.rect(surface, border_color, rect, width=3, border_radius=6)
 
             # Level badge
             badge_txt = render_text(str(b.level), S.FONT_SM - 2, S.COLOR_WHITE,

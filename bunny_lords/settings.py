@@ -3,8 +3,8 @@ Bunny Lords — Global Settings & Constants
 """
 
 # ── Display ──────────────────────────────────────────────
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 1400
+SCREEN_HEIGHT = 800
 FPS = 60
 GAME_TITLE = "Bunny Lords"
 

@@ -7,10 +7,10 @@
     "unique": true,
     "levels": {
       "1":  {"cost": {"carrots": 0,    "wood": 0,    "stone": 0,   "gold": 0},   "build_time": 0,   "unlocks": ["carrot_farm", "lumber_burrow"]},
-      "2":  {"cost": {"carrots": 200,  "wood": 150,  "stone": 100, "gold": 50},  "build_time": 30,  "unlocks": ["stone_quarry"]},
-      "3":  {"cost": {"carrots": 500,  "wood": 400,  "stone": 300, "gold": 150}, "build_time": 90,  "unlocks": ["gold_mine", "warehouse"]},
-      "4":  {"cost": {"carrots": 1200, "wood": 1000, "stone": 800, "gold": 400}, "build_time": 180, "unlocks": ["barracks"]},
-      "5":  {"cost": {"carrots": 3000, "wood": 2500, "stone": 2000,"gold": 1000},"build_time": 360, "unlocks": ["academy", "wall"]}
+      "2":  {"cost": {"carrots": 200,  "wood": 150,  "stone": 100, "gold": 50},  "build_time": 10,  "unlocks": ["stone_quarry"]},
+      "3":  {"cost": {"carrots": 500,  "wood": 400,  "stone": 300, "gold": 100}, "build_time": 15,  "unlocks": ["gold_mine", "warehouse"]},
+      "4":  {"cost": {"carrots": 1200, "wood": 1000, "stone": 800, "gold": 400}, "build_time": 20, "unlocks": ["barracks"]},
+      "5":  {"cost": {"carrots": 3000, "wood": 2500, "stone": 2000,"gold": 1000},"build_time": 30, "unlocks": ["academy", "wall"]}
     }
   },
   "carrot_farm": {
@@ -21,9 +21,9 @@
     "unique": false,
     "levels": {
       "1":  {"cost": {"carrots": 50,   "wood": 30},   "build_time": 10,  "production": {"carrots": 5}},
-      "2":  {"cost": {"carrots": 120,  "wood": 80},   "build_time": 25,  "production": {"carrots": 12}},
-      "3":  {"cost": {"carrots": 300,  "wood": 200},  "build_time": 55,  "production": {"carrots": 22}},
-      "4":  {"cost": {"carrots": 700,  "wood": 450},  "build_time": 110, "production": {"carrots": 38}},
+      "2":  {"cost": {"carrots": 120,  "wood": 80},   "build_time": 25,  "production": {"carrots": 20}},
+      "3":  {"cost": {"carrots": 300,  "wood": 200},  "build_time": 55,  "production": {"carrots": 30}},
+      "4":  {"cost": {"carrots": 700,  "wood": 450},  "build_time": 110, "production": {"carrots": 45}},
       "5":  {"cost": {"carrots": 1500, "wood": 1000}, "build_time": 220, "production": {"carrots": 60}}
     }
   },
@@ -35,10 +35,10 @@
     "unique": false,
     "levels": {
       "1":  {"cost": {"carrots": 60,   "wood": 20},   "build_time": 10,  "production": {"wood": 5}},
-      "2":  {"cost": {"carrots": 140,  "wood": 60},   "build_time": 25,  "production": {"wood": 12}},
-      "3":  {"cost": {"carrots": 350,  "wood": 180},  "build_time": 55,  "production": {"wood": 22}},
-      "4":  {"cost": {"carrots": 800,  "wood": 400},  "build_time": 110, "production": {"wood": 38}},
-      "5":  {"cost": {"carrots": 1800, "wood": 900},  "build_time": 220, "production": {"wood": 60}}
+      "2":  {"cost": {"carrots": 140,  "wood": 60},   "build_time": 25,  "production": {"wood": 15}},
+      "3":  {"cost": {"carrots": 350,  "wood": 180},  "build_time": 55,  "production": {"wood": 25}},
+      "4":  {"cost": {"carrots": 800,  "wood": 400},  "build_time": 110, "production": {"wood": 35}},
+      "5":  {"cost": {"carrots": 1800, "wood": 900},  "build_time": 220, "production": {"wood": 50}}
     }
   },
   "stone_quarry": {
@@ -49,11 +49,11 @@
     "unique": false,
     "requires_castle": 2,
     "levels": {
-      "1":  {"cost": {"carrots": 100,  "wood": 80,   "stone": 20},  "build_time": 15,  "production": {"stone": 4}},
-      "2":  {"cost": {"carrots": 250,  "wood": 180,  "stone": 60},  "build_time": 35,  "production": {"stone": 10}},
-      "3":  {"cost": {"carrots": 600,  "wood": 400,  "stone": 180}, "build_time": 70,  "production": {"stone": 20}},
-      "4":  {"cost": {"carrots": 1400, "wood": 900,  "stone": 400}, "build_time": 140, "production": {"stone": 35}},
-      "5":  {"cost": {"carrots": 3200, "wood": 2000, "stone": 900}, "build_time": 280, "production": {"stone": 55}}
+      "1":  {"cost": {"carrots": 100,  "wood": 80,   "stone": 20},  "build_time": 5,  "production": {"stone": 5}},
+      "2":  {"cost": {"carrots": 250,  "wood": 180,  "stone": 60},  "build_time": 7,  "production": {"stone": 10}},
+      "3":  {"cost": {"carrots": 600,  "wood": 400,  "stone": 180}, "build_time": 9,  "production": {"stone": 15}},
+      "4":  {"cost": {"carrots": 1400, "wood": 900,  "stone": 400}, "build_time": 11, "production": {"stone": 20}},
+      "5":  {"cost": {"carrots": 3200, "wood": 2000, "stone": 900}, "build_time": 14, "production": {"stone": 25}}
     }
   },
   "gold_mine": {
@@ -64,10 +64,10 @@
     "unique": false,
     "requires_castle": 3,
     "levels": {
-      "1":  {"cost": {"carrots": 200,  "wood": 150,  "stone": 100, "gold": 10},  "build_time": 20,  "production": {"gold": 2}},
-      "2":  {"cost": {"carrots": 500,  "wood": 350,  "stone": 250, "gold": 40},  "build_time": 45,  "production": {"gold": 5}},
-      "3":  {"cost": {"carrots": 1200, "wood": 800,  "stone": 600, "gold": 120}, "build_time": 100, "production": {"gold": 10}},
-      "4":  {"cost": {"carrots": 2800, "wood": 1800, "stone": 1400,"gold": 300}, "build_time": 200, "production": {"gold": 18}},
+      "1":  {"cost": {"carrots": 200,  "wood": 150,  "stone": 100, "gold": 10},  "build_time": 20,  "production": {"gold": 5}},
+      "2":  {"cost": {"carrots": 500,  "wood": 350,  "stone": 250, "gold": 40},  "build_time": 45,  "production": {"gold": 10}},
+      "3":  {"cost": {"carrots": 1200, "wood": 800,  "stone": 600, "gold": 120}, "build_time": 100, "production": {"gold": 14}},
+      "4":  {"cost": {"carrots": 2800, "wood": 1800, "stone": 1400,"gold": 300}, "build_time": 200, "production": {"gold": 20}},
       "5":  {"cost": {"carrots": 6000, "wood": 4000, "stone": 3000,"gold": 700}, "build_time": 400, "production": {"gold": 30}}
     }
   },

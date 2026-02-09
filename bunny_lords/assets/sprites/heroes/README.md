@@ -10,18 +10,19 @@ Place custom hero portrait images in this folder to replace the procedural bunni
 
 2. **Image specs:**
    - **Format:** PNG (supports transparency)
-   - **Recommended size:** 120x120 pixels (or any square size - will be auto-scaled)
+   - **Recommended size:** 600x400 pixels (landscape orientation)
+   - **Aspect ratio:** 3:2 works best (e.g., 600x400, 900x600, 1200x800)
    - **Style:** Any art style! Anime bunnies, pixel art, realistic, cartoons, etc.
 
 3. **Fallback:** If no custom image is found, the game uses the default procedural bunny
 
 ## Example Hero IDs
 
-Check `data/heroes.json` for the exact IDs. Common starter heroes:
-- `knight.png`
-- `archer.png`
-- `mage.png`
-- `healer.png`
+Check `data/heroes.json` for the exact IDs. Your current heroes:
+- `hero_1.png` - Fluffy the Savior
+- `hero_2.png` - Rabbiticus the III
+- `hero_3.png` - Hero 3 (The Wise)
+- `hero_4.png` - Hero 4 (The Fierce)
 
 ## Tips
 

@@ -78,7 +78,7 @@
         "type": "troops_trained",
         "target": 5,
         "rewards": {"carrots": 200, "wood": 100},
-        "repeatable": true
+        "repeatable": false
     },
     "q_daily_build": {
         "name": "Daily Builder",
@@ -86,7 +86,7 @@
         "category": "daily",
         "type": "building_complete",
         "target": 1,
-        "rewards": {"carrots": 150, "stone": 100},
-        "repeatable": true
+        "rewards": {"carrots": 150, "stone": 100, "gold": 50},
+        "repeatable": false
     }
 }

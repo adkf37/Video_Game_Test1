@@ -219,14 +219,14 @@ class HeroManagementState(GameState):
     #  Drawing helpers
     # ══════════════════════════════════════════════════════
     def _draw_hero_portrait(self, surface: pygame.Surface, hero: Hero):
-        # Panel background
-        panel = pygame.Rect(20, 20, 340, 320)
+        # Panel background - large to fit 600x400 portrait
+        panel = pygame.Rect(20, 20, 640, 520)
         draw_rounded_panel(surface, panel, S.COLOR_PANEL,
                            border_color=hero.color, radius=10, alpha=235)
 
-        # Hero selector arrows
-        self._left_arrow.center = (panel.x + 30, panel.y + 40)
-        self._right_arrow.center = (panel.right - 30, panel.y + 40)
+        # Hero selector arrows at top
+        self._left_arrow.center = (panel.x + 40, panel.y + 25)
+        self._right_arrow.center = (panel.right - 40, panel.y + 25)
         pygame.draw.polygon(surface, S.COLOR_TEXT,
                             [(self._left_arrow.centerx + 8, self._left_arrow.y + 5),
                              (self._left_arrow.centerx - 8, self._left_arrow.centery),
@@ -236,78 +236,61 @@ class HeroManagementState(GameState):
                              (self._right_arrow.centerx + 8, self._right_arrow.centery),
                              (self._right_arrow.centerx - 8, self._right_arrow.bottom - 5)])
 
-        # Hero name + title
+        # Hero name + title at top center
         name_surf = render_text(hero.name, S.FONT_LG, hero.color, bold=True)
         surface.blit(name_surf, (panel.centerx - name_surf.get_width() // 2,
-                                 panel.y + 12))
+                                 panel.y + 8))
         title_surf = render_text(f'"{hero.title}"', S.FONT_SM, S.COLOR_TEXT_DIM)
         surface.blit(title_surf, (panel.centerx - title_surf.get_width() // 2,
-                                  panel.y + 48))
+                                  panel.y + 35))
 
-        # Big bouncing bunny (or custom portrait)
+        # Large bouncing portrait (600x400) - centered
         bounce = math.sin(self._time * 2) * 6
-        bunny_rect = pygame.Rect(0, 0, 120, 120)
-        bunny_rect.center = (panel.centerx, panel.y + 140 + int(bounce))
+        bunny_rect = pygame.Rect(0, 0, 400, 600)
+        bunny_rect.center = (panel.centerx, panel.y + 260 + int(bounce))
         
         # Try loading custom hero portrait
         custom_image = None
         try:
             import os
-            portrait_path = f"assets/sprites/heroes/{hero.id}.png"
+            # Use absolute path relative to this file's directory
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            portrait_path = os.path.join(base_dir, "assets", "sprites", "heroes", f"{hero.id}.png")
             if os.path.exists(portrait_path):
                 custom_image = pygame.image.load(portrait_path)
                 # Scale to fit bunny_rect
                 custom_image = pygame.transform.scale(custom_image, 
                                                       (bunny_rect.width, bunny_rect.height))
-        except Exception:
-            pass  # Fall back to procedural bunny
+        except Exception as e:
+            # Print error for debugging
+            print(f"Could not load portrait for {hero.id}: {e}")
         
         if custom_image:
             surface.blit(custom_image, bunny_rect)
         else:
             draw_bunny_icon(surface, bunny_rect, hero.color)
 
-        # Role badge
+        # Role badge below portrait
         role_colors = {"tank": (100, 180, 220), "dps": (220, 100, 100),
                        "support": (100, 220, 140)}
         rc = role_colors.get(hero.role, S.COLOR_TEXT_DIM)
-        role_surf = render_text(hero.role.upper(), S.FONT_SM - 2, rc, bold=True)
+        role_surf = render_text(hero.role.upper(), S.FONT_SM, rc, bold=True)
         rx = panel.centerx - role_surf.get_width() // 2
-        surface.blit(role_surf, (rx, panel.y + 210))
+        surface.blit(role_surf, (rx, panel.y + 465))
 
-        # Level + XP bar
-        y = panel.y + 235
-        surface.blit(render_text(f"Level {hero.level}", S.FONT_MD,
-                                 S.COLOR_ACCENT, bold=True),
-                     (panel.x + 20, y))
-        y += 28
-        xp_bar = pygame.Rect(panel.x + 20, y, panel.width - 40, 14)
-        draw_progress_bar(surface, xp_bar, hero.xp_progress,
-                          fg_color=S.COLOR_ACCENT, border_color=S.COLOR_TEXT_DIM)
-        xp_txt = render_text(f"XP: {hero.xp} / {hero.xp_to_next}",
-                             S.FONT_SM - 2, S.COLOR_TEXT_DIM)
-        surface.blit(xp_txt, (panel.x + 20, y + 18))
-
-        # Power
+        # Level + XP at bottom
+        y = panel.y + 485
+        level_surf = render_text(f"Level {hero.level}", S.FONT_SM,
+                                 S.COLOR_ACCENT, bold=True)
+        surface.blit(level_surf, (panel.x + 15, y))
+        
+        # Power on right
         pwr = render_text(f"Power: {hero.power}", S.FONT_SM,
                           S.COLOR_ACCENT2, bold=True)
-        surface.blit(pwr, (panel.right - pwr.get_width() - 20, y + 18))
-
-        # Add XP button
-        self._xp_btn.topleft = (panel.right - 120, panel.y + 235)
-        draw_rounded_panel(surface, self._xp_btn, S.COLOR_BUTTON,
-                           radius=6, alpha=220)
-        surface.blit(render_text("+50 XP", S.FONT_SM, S.COLOR_WHITE, bold=True),
-                     (self._xp_btn.x + 18, self._xp_btn.y + 7))
-
-        # Hero counter
-        counter = render_text(f"{self._selected_idx + 1} / {len(self.heroes)}",
-                              S.FONT_SM, S.COLOR_TEXT_DIM)
-        surface.blit(counter, (panel.centerx - counter.get_width() // 2,
-                               panel.bottom - 24))
+        surface.blit(pwr, (panel.right - pwr.get_width() - 15, y))
 
     def _draw_detail_panel(self, surface: pygame.Surface, hero: Hero):
-        panel = pygame.Rect(380, 20, S.SCREEN_WIDTH - 400, 320)
+        panel = pygame.Rect(680, 20, S.SCREEN_WIDTH - 700, 520)
         draw_rounded_panel(surface, panel, S.COLOR_PANEL,
                            border_color=S.COLOR_GRID_LINE, radius=10, alpha=235)
 
@@ -396,7 +379,7 @@ class HeroManagementState(GameState):
             y += 10
 
     def _draw_equipment(self, surface: pygame.Surface, hero: Hero):
-        panel = pygame.Rect(20, 360, S.SCREEN_WIDTH - 40, S.SCREEN_HEIGHT - 430)
+        panel = pygame.Rect(20, 560, S.SCREEN_WIDTH - 40, S.SCREEN_HEIGHT - 620)
         draw_rounded_panel(surface, panel, S.COLOR_PANEL,
                            border_color=S.COLOR_GRID_LINE, radius=10, alpha=235)
 
@@ -494,7 +477,7 @@ class HeroManagementState(GameState):
 
     def _slot_rect(self, index: int) -> pygame.Rect:
         panel_x = 20
-        panel_y = 360
+        panel_y = 560
         slot_w = (S.SCREEN_WIDTH - 60) // len(EQUIP_SLOTS)
         return pygame.Rect(panel_x + 12 + index * (slot_w + 4),
                            panel_y + 34, slot_w - 8, 64)
