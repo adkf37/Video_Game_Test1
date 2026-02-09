@@ -157,8 +157,60 @@ class BaseViewState(GameState):
     # ══════════════════════════════════════════════════════
     #  Lifecycle
     # ══════════════════════════════════════════════════════
+    def reset_to_new_game(self):
+        """Clear all progress and start a fresh game."""
+        # Clear buildings and grid
+        self.buildings.clear()
+        self.grid = [[None] * S.GRID_COLS for _ in range(S.GRID_ROWS)]
+        
+        # Reset resources to starting values
+        self.resource_mgr.resources = {
+            "gold": 1000, "food": 500, "wood": 300, 
+            "stone": 200, "iron": 0
+        }
+        self.resource_mgr.storage = {
+            "food": 1000, "wood": 1000, "stone": 1000, "iron": 1000
+        }
+        
+        # Clear army and training queue
+        self.army.troops.clear()
+        self.training_system.queue.clear()
+        
+        # Reset heroes to initial state
+        self.heroes = [Hero(hdef) for hdef in self.hero_defs.values()]
+        self.inventory = Inventory()
+        
+        # Reset campaign progress
+        self.campaign = CampaignData()
+        
+        # Reset research
+        self.research_system.completed.clear()
+        self.research_system.current = None
+        self.research_system.timer = 0.0
+        self.research_system.total_time = 0.0
+        
+        # Reset quests
+        self.quest_system = QuestSystem(self.resource_mgr, self.event_bus)
+        
+        # Reset timers
+        self.resource_tick_timer = 0.0
+        self.autosave_timer = 0.0
+        
+        # Clear UI state
+        self._selected_build_id = None
+        self.info_panel.hide()
+        self.training_panel.hide()
+        self.army_panel.hide()
+        self.research_panel.hide()
+        self.quest_panel.hide()
+        self.toasts._toasts.clear()
+        
+        # Place starting castle
+        self._place_building("castle", S.GRID_COLS // 2 - 1,
+                           S.GRID_ROWS // 2 - 1, instant=True)
+
     def enter(self, **params):
-        # Place the starting castle at center
+        # Place the starting castle at center (only if no buildings exist)
         if not self.buildings:
             self._place_building("castle", S.GRID_COLS // 2 - 1,
                                  S.GRID_ROWS // 2 - 1, instant=True)
@@ -204,6 +256,17 @@ class BaseViewState(GameState):
                 else:
                     occupant = self.grid[gy][gx]
                     if occupant:
+                        # Check if it's a stone quarry needing clicks
+                        if occupant.id == "stone_quarry" and not occupant.building:
+                            if occupant.current_clicks < occupant.clicks_needed:
+                                occupant.current_clicks += 1
+                                self._sm.play("click")
+                                if occupant.current_clicks >= occupant.clicks_needed:
+                                    self.toasts.show(f"Quarry ready to produce!", S.COLOR_ACCENT2, 2.0)
+                                else:
+                                    remaining = occupant.clicks_needed - occupant.current_clicks
+                                    self.toasts.show(f"Quarry: {remaining} more clicks needed", S.COLOR_TEXT_DIM, 1.5)
+                            return
                         self._select_building(occupant)
                     else:
                         self._selected_cell = cell
@@ -254,6 +317,9 @@ class BaseViewState(GameState):
                                     building_id=b.id, level=b.level)
                 self._sm.play("build_complete")
                 self._spawn_particles(b.grid_x, b.grid_y, count=20)
+                # Victory animation!
+                self.game.state_manager.push("victory_animation",
+                                              message=f"{b.name} Level {b.level}!")
                 # Refresh info panel if this building is selected
                 if (self.info_panel.visible and
                         self.info_panel.building is b):
@@ -304,6 +370,16 @@ class BaseViewState(GameState):
                 tip = f"{occupant.name} (Lv.{occupant.level})"
                 if occupant.building:
                     tip += f"\nBuilding... {int(occupant.build_progress * 100)}%"
+                elif occupant.id == "stone_quarry":
+                    if occupant.current_clicks < occupant.clicks_needed:
+                        remaining = occupant.clicks_needed - occupant.current_clicks
+                        tip += f"\nNeeds {remaining} more clicks!"
+                        tip += f"\n(Resets every 10s)"
+                    else:
+                        tip += "\nReady to produce!"
+                    if prod:
+                        parts = [f"+{v}/s {k}" for k, v in prod.items()]
+                        tip += "\n" + ", ".join(parts)
                 elif prod:
                     parts = [f"+{v}/s {k}" for k, v in prod.items()]
                     tip += "\n" + ", ".join(parts)
@@ -436,6 +512,14 @@ class BaseViewState(GameState):
                 color = tuple(c // 2 for c in color)
 
             draw_building_shape(surface, rect, color, b.id)
+
+            # Stone quarry needing clicks — red pulsing border
+            if b.id == "stone_quarry" and not b.building:
+                if b.current_clicks < b.clicks_needed:
+                    import math
+                    pulse = int(80 + 80 * abs(math.sin(pygame.time.get_ticks() / 200)))
+                    border_color = (255, pulse, pulse)
+                    pygame.draw.rect(surface, border_color, rect, width=3, border_radius=6)
 
             # Level badge
             badge_txt = render_text(str(b.level), S.FONT_SM - 2, S.COLOR_WHITE,

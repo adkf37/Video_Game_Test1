@@ -304,6 +304,10 @@ class BattleViewState(GameState):
             # Mark campaign stage complete
             if self._campaign:
                 self._campaign.complete_stage(self.stage_id)
+                # Show victory animation
+                stage_name = self.stage_data.get("name", self.stage_id)
+                self.game.state_manager.push("victory_animation",
+                                              message=f"{stage_name} Complete!")
             if self._event_bus:
                 self._event_bus.emit("campaign_complete",
                                      stage_id=self.stage_id)

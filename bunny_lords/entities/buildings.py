@@ -58,6 +58,11 @@ class Building:
         self.build_timer = 0.0       # seconds remaining
         self.build_total = 0.0       # total build time for progress calc
         self._pending_level = level  # level being built towards
+        
+        # Stone quarry click mechanic
+        self.click_timer = 0.0       # timer for stone quarries
+        self.clicks_needed = 5       # clicks required every 10 seconds
+        self.current_clicks = 0      # clicks accumulated this cycle
 
     @property
     def id(self) -> str:
@@ -72,7 +77,12 @@ class Building:
         """Current resource production per tick (0 if under construction)."""
         if self.building:
             return {}
-        return self.definition.production_for(self.level)
+        prod = self.definition.production_for(self.level)
+        # Stone quarries require clicking to produce
+        if self.id == "stone_quarry" and "stone" in prod:
+            if self.current_clicks < self.clicks_needed:
+                return {}  # No production until clicked enough
+        return prod
 
     @property
     def build_progress(self) -> float:
@@ -93,6 +103,13 @@ class Building:
 
     def update(self, dt: float) -> bool:
         """Tick timer. Returns True if construction just completed."""
+        # Stone quarry click timer
+        if self.id == "stone_quarry" and not self.building:
+            self.click_timer += dt
+            if self.click_timer >= 10.0:  # Reset every 10 seconds
+                self.click_timer = 0.0
+                self.current_clicks = 0
+        
         if not self.building:
             return False
         self.build_timer -= dt
@@ -114,6 +131,8 @@ class Building:
             "build_timer": self.build_timer,
             "build_total": self.build_total,
             "_pending_level": self._pending_level,
+            "click_timer": self.click_timer,
+            "current_clicks": self.current_clicks,
         }
 
     @classmethod
@@ -124,6 +143,8 @@ class Building:
         b.build_timer = data.get("build_timer", 0)
         b.build_total = data.get("build_total", 0)
         b._pending_level = data.get("_pending_level", b.level)
+        b.click_timer = data.get("click_timer", 0)
+        b.current_clicks = data.get("current_clicks", 0)
         return b
 
 

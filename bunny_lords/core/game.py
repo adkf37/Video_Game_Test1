@@ -20,6 +20,7 @@ class Game:
         pygame.display.set_caption(S.GAME_TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
+        self.show_fps = True  # toggle for FPS counter
         self.show_fps = True
 
         # Core systems
@@ -35,12 +36,20 @@ class Game:
         from states.world_map import WorldMapState
         from states.settings_state import SettingsState
         from states.pause_menu import PauseMenuState
+        from states.help_screen import HelpScreenState
+        from states.victory_animation import VictoryAnimationState
+        from states.settings_state import SettingsState
+        from states.pause_menu import PauseMenuState
 
         self.state_manager.register("main_menu", MainMenuState(self))
         self.state_manager.register("base_view", BaseViewState(self))
         self.state_manager.register("hero_management", HeroManagementState(self))
         self.state_manager.register("battle_view", BattleViewState(self))
         self.state_manager.register("world_map", WorldMapState(self))
+        self.state_manager.register("settings", SettingsState(self))
+        self.state_manager.register("pause_menu", PauseMenuState(self))
+        self.state_manager.register("help_screen", HelpScreenState(self))
+        self.state_manager.register("victory_animation", VictoryAnimationState(self))
         self.state_manager.register("settings", SettingsState(self))
         self.state_manager.register("pause_menu", PauseMenuState(self))
 

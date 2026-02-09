@@ -5,7 +5,7 @@ import pygame
 import math
 from core.state_machine import GameState
 from systems.sound_manager import get_sound_manager
-from systems.save_system import list_saves, load_game
+from systems.save_system import list_saves, load_game, delete_save
 from utils.asset_loader import render_text
 from utils.draw_helpers import draw_bunny_icon, draw_rounded_panel
 import settings as S
@@ -61,6 +61,12 @@ class MainMenuState(GameState):
             "rect": pygame.Rect(cx - bw // 2, by, bw, bh),
             "text": "Settings", "color": (100, 100, 140),
             "action": self._open_settings, "hover": False,
+        })
+        by += gap
+        self._buttons.append({
+            "rect": pygame.Rect(cx - bw // 2, by, bw, bh),
+            "text": "How to Play", "color": (80, 160, 120),
+            "action": self._open_help, "hover": False,
         })
 
     def handle_event(self, event: pygame.event.Event):
@@ -140,6 +146,16 @@ class MainMenuState(GameState):
 
     # ── Actions ──────────────────────────────────────────
     def _new_game(self):
+        """Start a fresh game by resetting all progress."""
+        # Delete existing save files to start completely fresh
+        saves = list_saves()
+        for save in saves:
+            delete_save(save["path"])
+        
+        # Access base_view state and reset it
+        base_state = self.game.state_manager._registry.get("base_view")
+        if base_state:
+            base_state.reset_to_new_game()  # type: ignore[attr-defined]
         self.game.state_manager.transition_to("base_view")
 
     def _continue_game(self):
@@ -155,3 +171,7 @@ class MainMenuState(GameState):
     def _open_settings(self):
         self._sm.play("click")
         self.game.state_manager.push("settings")
+
+    def _open_help(self):
+        self._sm.play("click")
+        self.game.state_manager.push("help_screen")

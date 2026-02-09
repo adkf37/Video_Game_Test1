@@ -1,5 +1,9 @@
 """
 Hero Management — Full screen for viewing heroes, stats, equipment, and abilities.
+
+Supports custom hero portraits: place PNG files in assets/sprites/heroes/
+named by hero ID (e.g., knight.png, archer.png). Falls back to procedural
+bunnies if custom art not found.
 """
 from __future__ import annotations
 import pygame
@@ -240,11 +244,28 @@ class HeroManagementState(GameState):
         surface.blit(title_surf, (panel.centerx - title_surf.get_width() // 2,
                                   panel.y + 48))
 
-        # Big bouncing bunny
+        # Big bouncing bunny (or custom portrait)
         bounce = math.sin(self._time * 2) * 6
         bunny_rect = pygame.Rect(0, 0, 120, 120)
         bunny_rect.center = (panel.centerx, panel.y + 140 + int(bounce))
-        draw_bunny_icon(surface, bunny_rect, hero.color)
+        
+        # Try loading custom hero portrait
+        custom_image = None
+        try:
+            import os
+            portrait_path = f"assets/sprites/heroes/{hero.id}.png"
+            if os.path.exists(portrait_path):
+                custom_image = pygame.image.load(portrait_path)
+                # Scale to fit bunny_rect
+                custom_image = pygame.transform.scale(custom_image, 
+                                                      (bunny_rect.width, bunny_rect.height))
+        except Exception:
+            pass  # Fall back to procedural bunny
+        
+        if custom_image:
+            surface.blit(custom_image, bunny_rect)
+        else:
+            draw_bunny_icon(surface, bunny_rect, hero.color)
 
         # Role badge
         role_colors = {"tank": (100, 180, 220), "dps": (220, 100, 100),

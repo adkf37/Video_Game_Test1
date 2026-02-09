@@ -29,6 +29,7 @@ class Quest:
         self.definition = definition
         self.progress: int = 0
         self.claimed: bool = False
+        self.last_claim_time: float = 0  # timestamp of last claim (for dailies)
 
     @property
     def id(self) -> str:
@@ -53,6 +54,13 @@ class Quest:
         """Reset for repeatable quests."""
         self.progress = 0
         self.claimed = False
+
+    def can_claim_daily(self, current_time: float) -> bool:
+        """Check if enough time has passed since last claim (24 hours)."""
+        if self.definition.category != "daily":
+            return True
+        # 24 hours = 86400 seconds
+        return (current_time - self.last_claim_time) >= 86400
 
 
 class QuestSystem:
@@ -136,8 +144,13 @@ class QuestSystem:
     # ── Actions ──────────────────────────────────────────
     def claim(self, quest_id: str) -> bool:
         """Claim quest rewards. Returns True on success."""
+        import time
         q = self.quests.get(quest_id)
         if not q or not q.is_complete or q.claimed:
+            return False
+        # Check if daily quest can be claimed (24h cooldown)
+        current_time = time.time()
+        if not q.can_claim_daily(current_time):
             return False
         # Grant rewards
         for resource, amount in q.definition.rewards.items():
@@ -145,14 +158,19 @@ class QuestSystem:
                 continue  # handled elsewhere
             self.resource_mgr.add(resource, amount)
         q.claimed = True
-        # If repeatable, reset for next cycle
+        q.last_claim_time = current_time
+        # If repeatable (daily), reset progress for next cycle
         if q.definition.repeatable:
             q.reset()
         return True
 
     def to_dict(self) -> dict:
         return {
-            qid: {"progress": q.progress, "claimed": q.claimed}
+            qid: {
+                "progress": q.progress,
+                "claimed": q.claimed,
+                "last_claim_time": q.last_claim_time
+            }
             for qid, q in self.quests.items()
         }
 
@@ -161,3 +179,4 @@ class QuestSystem:
             if qid in self.quests:
                 self.quests[qid].progress = qdata.get("progress", 0)
                 self.quests[qid].claimed = qdata.get("claimed", False)
+                self.quests[qid].last_claim_time = qdata.get("last_claim_time", 0)
