@@ -246,7 +246,7 @@ class HeroManagementState(GameState):
 
         # Large bouncing portrait (600x400) - centered
         bounce = math.sin(self._time * 2) * 6
-        bunny_rect = pygame.Rect(0, 0, 400, 600)
+        bunny_rect = pygame.Rect(0, 0, 350, 500)
         bunny_rect.center = (panel.centerx, panel.y + 260 + int(bounce))
         
         # Try loading custom hero portrait

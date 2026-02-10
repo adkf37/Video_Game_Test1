@@ -28,8 +28,8 @@
     ]
   },
   "hero_3": {
-    "name": "Hero 3",
-    "title": "The Wise",
+    "name": "Eary",
+    "title": "The Kind",
     "description": "A mystical bunny sage who strengthens armies with knowledge.",
     "role": "support",
     "base_stats": {"hp": 150, "atk": 15, "def": 15, "speed": 12},
