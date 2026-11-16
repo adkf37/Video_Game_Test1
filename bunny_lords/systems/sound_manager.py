@@ -20,7 +20,8 @@ class SoundManager:
         self.music_volume: float = 0.3
         self.master_volume: float = 0.7
         self.enabled: bool = True
-        self._generate_all()
+        if pygame.mixer.get_init():
+            self._generate_all()
 
     # ══════════════════════════════════════════════════════
     #  Waveform helpers

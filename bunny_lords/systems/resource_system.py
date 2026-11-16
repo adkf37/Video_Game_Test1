@@ -15,6 +15,7 @@ class ResourceManager:
         self.resources: dict[str, float] = {}
         self.capacity: dict[str, float] = {}
         self._defs: dict[str, dict] = {}
+        self.rates: dict[str, float] = {}
         self._load_defs()
         self._init_resources()
 
@@ -40,17 +41,18 @@ class ResourceManager:
     def add(self, rid: str, amount: float):
         cur = self.resources.get(rid, 0)
         cap = self.capacity.get(rid, float("inf"))
-        self.resources[rid] = min(cur + amount, cap)
+        self.resources[rid] = max(0, min(cur + amount, cap))
+        return self.resources[rid] - cur
 
     def spend(self, rid: str, amount: float) -> bool:
         """Deduct. Returns True on success, False if insufficient."""
-        if self.resources.get(rid, 0) >= amount:
+        if amount >= 0 and self.resources.get(rid, 0) >= amount:
             self.resources[rid] -= amount
             return True
         return False
 
     def can_afford(self, cost: dict[str, int | float]) -> bool:
-        return all(self.resources.get(r, 0) >= amt
+        return all(amt >= 0 and r in self.resources and self.resources.get(r, 0) >= amt
                    for r, amt in cost.items())
 
     def pay(self, cost: dict[str, int | float]) -> bool:
@@ -64,12 +66,22 @@ class ResourceManager:
     def add_capacity(self, rid: str, bonus: float):
         self.capacity[rid] = self.capacity.get(rid, 0) + bonus
 
-    def apply_production(self, buildings: list):
-        """Called once per resource tick. Sums all building production."""
+    def refresh_economy(self, buildings: list, bonuses=None):
+        """Recompute derived values; upgrades retain existing storage capacity."""
+        bonuses = bonuses or {}
+        storage = sum((b.definition.get_level_data(b.level) or {}).get("storage_bonus", 0)
+                      for b in buildings)
+        self.rates = {r: 0.0 for r in self.resource_names}
+        for rid in self.resource_names:
+            self.capacity[rid] = (self._defs[rid]["base_capacity"] + storage
+                                  + bonuses.get("capacity_bonus", {}).get(rid, 0))
         for b in buildings:
-            prod = b.production  # dict {resource_id: amount}
-            for rid, amount in prod.items():
-                self.add(rid, amount)
+            for rid, amount in b.production.items():
+                self.rates[rid] += amount * (1 + bonuses.get("production_bonus", {}).get(rid, 0))
+
+    def apply_production(self, buildings: list, bonuses=None, seconds=1.0):
+        self.refresh_economy(buildings, bonuses)
+        return {rid: self.add(rid, rate * seconds) for rid, rate in self.rates.items()}
 
     def to_dict(self) -> dict:
         return {

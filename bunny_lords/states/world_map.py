@@ -21,7 +21,7 @@ import settings as S
 
 # ── Layout ───────────────────────────────────────────────
 NODE_RADIUS = 30
-NODE_SPACING_X = 110
+NODE_SPACING_X = 190
 NODE_SPACING_Y = 65
 MAP_START_X = 120
 MAP_START_Y = 160
@@ -78,6 +78,11 @@ class WorldMapState(GameState):
         self._selected = None
         self._scroll_x = 0
         self._compute_node_positions()
+        if self.campaign:
+            self._selected = next((sid for sid in self.campaign.stages
+                                   if self.campaign.is_unlocked(sid) and sid not in self.campaign.completed), None)
+            if self._selected:
+                self._scroll_x = max(0, self._node_positions[self._selected][0] - S.SCREEN_WIDTH//2)
 
     def _compute_node_positions(self):
         """Layout campaign nodes in a snaking path."""
@@ -88,7 +93,7 @@ class WorldMapState(GameState):
         for i, sid in enumerate(stages):
             col = i
             # Snaking: odd rows offset down
-            row_offset = 20 * math.sin(i * 0.8)
+            row_offset = 36 * math.sin(i * 0.8)
             x = MAP_START_X + col * NODE_SPACING_X
             y = MAP_START_Y + int(row_offset)
             self._node_positions[sid] = (x, y)
@@ -96,7 +101,8 @@ class WorldMapState(GameState):
     def handle_event(self, event: pygame.event.Event):
         if self._back_btn.handle_event(event):
             return
-        if self._selected and self._attack_btn.handle_event(event):
+        if (self._selected and self.campaign and self.campaign.is_unlocked(self._selected)
+                and self._attack_btn.handle_event(event)):
             return
 
         if event.type == pygame.MOUSEMOTION:
@@ -109,8 +115,10 @@ class WorldMapState(GameState):
                     break
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self._hover_node:
-                self._selected = self._hover_node
+            for sid, (nx, ny) in self._node_positions.items():
+                if math.hypot(event.pos[0] - (nx-self._scroll_x), event.pos[1]-ny) < NODE_RADIUS+5:
+                    self._selected = sid
+                    break
 
         if event.type == pygame.MOUSEWHEEL:
             self._scroll_x -= event.y * 40
@@ -130,7 +138,13 @@ class WorldMapState(GameState):
         pass  # Map is static; battle is in separate state
 
     def draw(self, surface: pygame.Surface):
-        surface.fill((25, 30, 45))
+        from ui.kingdom import landscape
+        if not hasattr(self, "_terrain"):
+            self._terrain = landscape(S.SCREEN_WIDTH, S.SCREEN_HEIGHT, seed=18)
+            shade = pygame.Surface(self._terrain.get_size(), pygame.SRCALPHA)
+            shade.fill((10, 23, 29, 155))
+            self._terrain.blit(shade, (0,0))
+        surface.blit(self._terrain, (0,0))
 
         # Title
         title = render_text("World Map — Campaign", S.FONT_LG,
@@ -204,7 +218,7 @@ class WorldMapState(GameState):
 
             # Stars (if cleared)
             if is_cleared:
-                star = render_text("★", S.FONT_SM, S.COLOR_ACCENT)
+                star = render_text("Cleared", S.FONT_SM, S.COLOR_ACCENT)
                 surface.blit(star, (sx - star.get_width() // 2,
                                     ny + NODE_RADIUS + 4))
 
@@ -217,9 +231,9 @@ class WorldMapState(GameState):
 
             # Lock icon for locked stages
             if not is_unlocked and not is_cleared:
-                lock = render_text("🔒", S.FONT_SM, S.COLOR_TEXT_DIM)
-                surface.blit(lock, (sx - lock.get_width() // 2,
-                                    ny - NODE_RADIUS - 20))
+                lock_rect = pygame.Rect(sx-5, ny-NODE_RADIUS-17, 10, 8)
+                pygame.draw.rect(surface, S.COLOR_TEXT_DIM, lock_rect, border_radius=2)
+                pygame.draw.arc(surface, S.COLOR_TEXT_DIM, (sx-4, lock_rect.y-6, 8, 10), 0, math.pi, 2)
 
         # Selected stage info panel
         if self._selected and self.campaign:
@@ -244,14 +258,14 @@ class WorldMapState(GameState):
         is_unlocked = self.campaign.is_unlocked(self._selected)
 
         # Panel
-        pw, ph = 380, 320
+        pw, ph = 600, 420
         panel_rect = pygame.Rect(S.SCREEN_WIDTH // 2 - pw // 2,
-                                 S.SCREEN_HEIGHT // 2 - ph // 2 + 40,
+                                 280,
                                  pw, ph)
         border_color = NODE_CLEARED if is_cleared else (
             S.COLOR_ACCENT if is_unlocked else NODE_LOCKED)
         draw_rounded_panel(surface, panel_rect, S.COLOR_PANEL,
-                           border_color=border_color, radius=10, alpha=240)
+                           border_color=border_color, radius=10, alpha=255)
 
         x, y = panel_rect.x + 16, panel_rect.y + 12
 
@@ -260,7 +274,7 @@ class WorldMapState(GameState):
                          S.COLOR_ACCENT, bold=True)
         surface.blit(nt, (x, y))
         diff = stage.get("difficulty", 1)
-        dt_txt = render_text(f"Difficulty: {'★' * diff}",
+        dt_txt = render_text(f"Difficulty: {diff} / 5",
                              S.FONT_SM, S.COLOR_ACCENT)
         surface.blit(dt_txt, (x, y + 28))
         y += 54
@@ -309,7 +323,7 @@ class WorldMapState(GameState):
 
         # Status / Attack button
         if is_cleared:
-            st = render_text("★ CLEARED ★", S.FONT_SM, NODE_CLEARED, bold=True)
+            st = render_text("CLEARED", S.FONT_SM, NODE_CLEARED, bold=True)
             surface.blit(st, (panel_rect.centerx - st.get_width() // 2, y))
             # Still allow replaying
             y += 24
@@ -336,11 +350,13 @@ class WorldMapState(GameState):
         if not self._selected or not self.campaign or not self.army:
             return
         stage = self.campaign.stages.get(self._selected)
-        if not stage:
+        if not stage or not self.campaign.is_unlocked(self._selected):
             return
         if self.army.total_count <= 0:
             return
 
+        base = self.game.state_manager._registry["base_view"]
+        self.research_bonuses = base.research_system.get_bonuses()
         # Build combat engine
         engine = CombatEngine(
             self.troop_defs,

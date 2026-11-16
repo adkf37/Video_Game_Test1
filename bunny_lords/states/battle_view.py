@@ -156,6 +156,7 @@ class BattleViewState(GameState):
         self._tick_timer = 0.0
         self._speed = 1.0
         self._phase = "battle"
+        self._speed_btn.text = "1x"
         self._floats.clear()
         self._particles.clear()
 
@@ -284,6 +285,8 @@ class BattleViewState(GameState):
 
     def _end_battle(self):
         """Transition to result phase, apply real consequences."""
+        if self._phase == "result":
+            return
         self._phase = "result"
 
         victory = self.result.get("victory", False)
@@ -295,25 +298,26 @@ class BattleViewState(GameState):
                 self._army.remove(tid, lost)
 
         if victory:
+            first_clear = not self._campaign or self.stage_id not in self._campaign.completed
             # Grant rewards
             rewards = self.stage_data.get("rewards", {})
             if self._resource_mgr:
                 for r, amt in rewards.items():
                     if r != "xp":
                         self._resource_mgr.add(r, amt)
+            if self._event_bus:
+                self._event_bus.emit("hero_xp", amount=rewards.get("xp", 0))
             # Mark campaign stage complete
             if self._campaign:
                 self._campaign.complete_stage(self.stage_id)
-                # Show victory animation
-                stage_name = self.stage_data.get("name", self.stage_id)
-                self.game.state_manager.push("victory_animation",
-                                              message=f"{stage_name} Complete!")
             if self._event_bus:
                 self._event_bus.emit("campaign_complete",
-                                     stage_id=self.stage_id)
+                                     stage_id=self.stage_id, first_clear=first_clear)
 
     def _skip_battle(self):
         """Instantly finish playback."""
+        if self._phase != "battle":
+            return
         # Replay all remaining entries
         for t in range(self._tick_index + 1, self._max_tick + 1):
             entries = self._ticks_data.get(t, [])
@@ -447,58 +451,28 @@ class BattleViewState(GameState):
 
     def _draw_result(self, surface: pygame.Surface):
         victory = self.result.get("victory", False)
-
-        # Overlay panel
-        panel_w, panel_h = 500, 340
-        panel_rect = pygame.Rect(
-            S.SCREEN_WIDTH // 2 - panel_w // 2,
-            S.SCREEN_HEIGHT // 2 - panel_h // 2,
-            panel_w, panel_h)
-        draw_rounded_panel(surface, panel_rect, S.COLOR_PANEL,
-                           border_color=S.COLOR_ACCENT2 if victory else S.COLOR_DANGER,
-                           radius=12, alpha=245)
-
-        x, y = panel_rect.x + 20, panel_rect.y + 16
-
-        # Victory / Defeat
-        if victory:
-            vt = render_text("VICTORY!", S.FONT_XL, S.COLOR_ACCENT2, bold=True)
-        else:
-            vt = render_text("DEFEAT!", S.FONT_XL, S.COLOR_DANGER, bold=True)
-        surface.blit(vt, (panel_rect.centerx - vt.get_width() // 2, y))
-        y += 60
-
-        # Losses
-        p_losses = self.result.get("player_losses", {})
-        if p_losses:
-            lt = render_text("Your Losses:", S.FONT_SM, S.COLOR_TEXT, bold=True)
-            surface.blit(lt, (x, y))
-            y += 22
-            for tid, cnt in p_losses.items():
-                lt = render_text(f"  -{cnt} {tid.replace('_', ' ').title()}",
-                                 S.FONT_SM - 2, S.COLOR_DANGER)
-                surface.blit(lt, (x, y))
-                y += 18
-        else:
-            lt = render_text("No losses!", S.FONT_SM, S.COLOR_ACCENT2)
-            surface.blit(lt, (x, y))
-            y += 22
-
-        y += 10
-
-        # Rewards (if victory)
-        if victory:
-            rewards = self.stage_data.get("rewards", {})
-            rt = render_text("Rewards:", S.FONT_SM, S.COLOR_ACCENT, bold=True)
-            surface.blit(rt, (x, y))
-            y += 22
-            for r, amt in rewards.items():
-                color = S.RESOURCE_COLORS.get(r, S.COLOR_TEXT)
-                rt = render_text(f"  +{amt} {r}", S.FONT_SM - 2, color)
-                surface.blit(rt, (x, y))
-                y += 18
-
-        # Continue button
-        self._done_btn.rect.y = panel_rect.bottom - 60
-        self._done_btn.rect.centerx = panel_rect.centerx
+        losses = self.result.get("player_losses", {})
+        rewards = self.stage_data.get("rewards", {}) if victory else {}
+        rows = max(len(losses), len(rewards), 1)
+        height = min(640, max(320, 190+rows*24))
+        panel = pygame.Rect(S.SCREEN_WIDTH//2-330, S.SCREEN_HEIGHT//2-height//2, 660, height)
+        accent = S.COLOR_ACCENT2 if victory else S.COLOR_DANGER
+        draw_rounded_panel(surface, panel, S.COLOR_PANEL, border_color=accent, radius=14, alpha=255)
+        title = render_text("VICTORY!" if victory else "DEFEAT", S.FONT_XL, accent, bold=True)
+        surface.blit(title, title.get_rect(midtop=(panel.centerx, panel.y+20)))
+        from ui.kingdom import label
+        y = panel.y+94
+        label(surface, "YOUR LOSSES", (panel.x+26,y), 13, S.COLOR_TEXT_DIM, True)
+        label(surface, "REWARDS" if victory else "REGROUP", (panel.centerx+18,y), 13, S.COLOR_TEXT_DIM, True)
+        for i, (tid, count) in enumerate(losses.items()):
+            label(surface, f"-{count} {tid.replace('_',' ').title()}", (panel.x+26,y+30+i*24), 15, S.COLOR_DANGER)
+        if not losses:
+            label(surface, "Every bunny made it home.", (panel.x+26,y+30), 16, S.COLOR_ACCENT2)
+        for i, (rid, amount) in enumerate(rewards.items()):
+            label(surface, f"+{amount:,} {rid}", (panel.centerx+18,y+30+i*24), 16,
+                  S.RESOURCE_COLORS.get(rid,S.COLOR_ACCENT2))
+        if not victory:
+            label(surface, "Train reinforcements and try again.", (panel.centerx+18,y+30), 15)
+            label(surface, "Research can turn the tide.", (panel.centerx+18,y+57), 15, S.COLOR_TEXT_DIM)
+        self._done_btn.rect.midbottom = (panel.centerx, panel.bottom-22)
         self._done_btn.draw(surface)

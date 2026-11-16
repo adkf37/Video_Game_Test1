@@ -11,21 +11,21 @@ GAME_TITLE = "Bunny Lords"
 # ── Grid / Base ──────────────────────────────────────────
 GRID_COLS = 8
 GRID_ROWS = 8
-TILE_SIZE = 72          # pixels per tile
+TILE_SIZE = 68          # pixels per tile
 GRID_OFFSET_X = 40      # left margin for the grid on screen
-GRID_OFFSET_Y = 80      # top margin (below resource bar)
+GRID_OFFSET_Y = 164      # top margin (below resource bar)
 
 # ── Colours (RGB) ────────────────────────────────────────
-COLOR_BG           = (30,  35,  50)
-COLOR_PANEL        = (40,  45,  65)
-COLOR_PANEL_LIGHT  = (55,  60,  85)
-COLOR_ACCENT       = (255, 180, 50)   # golden
-COLOR_ACCENT2      = (100, 220, 160)  # teal / green
+COLOR_BG           = (19, 31, 38)
+COLOR_PANEL        = (30, 47, 54)
+COLOR_PANEL_LIGHT  = (45, 65, 70)
+COLOR_ACCENT       = (239, 192, 110)   # golden
+COLOR_ACCENT2      = (132, 204, 161)  # teal / green
 COLOR_DANGER       = (220, 60,  60)
-COLOR_TEXT          = (240, 240, 240)
-COLOR_TEXT_DIM      = (160, 160, 170)
-COLOR_GRID_LINE    = (60,  65,  90)
-COLOR_GRID_EMPTY   = (45,  50,  72)
+COLOR_TEXT          = (239, 239, 221)
+COLOR_TEXT_DIM      = (154, 177, 175)
+COLOR_GRID_LINE    = (62, 94, 75)
+COLOR_GRID_EMPTY   = (49, 84, 63)
 COLOR_BUTTON       = (70,  130, 220)
 COLOR_BUTTON_HOVER = (90,  150, 240)
 COLOR_HP_GREEN     = (80,  200, 80)
@@ -77,8 +77,8 @@ RESEARCH_COLORS = {
 # ── Campaign / map colours ───────────────────────────────
 COLOR_MAP_BG       = (25, 30, 45)
 COLOR_NODE_LOCKED  = (90, 90, 100)
-COLOR_NODE_UNLOCKED = (255, 180, 50)
-COLOR_NODE_CLEARED = (100, 220, 160)
+COLOR_NODE_UNLOCKED = (239, 192, 110)
+COLOR_NODE_CLEARED = (132, 204, 161)
 
 # ── Fonts (sizes) ────────────────────────────────────────
 FONT_SM = 16

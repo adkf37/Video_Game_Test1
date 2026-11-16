@@ -137,8 +137,8 @@ class CombatEngine:
             hero_def_bonus = 0
             for h in self.heroes:
                 hs = h.total_stats
-                hero_atk_bonus += hs.get("atk", 0) * 0.02  # 2% of hero atk per hero
-                hero_def_bonus += hs.get("def", 0) * 0.02
+                hero_atk_bonus += hs.get("atk", 0) * (1 + self.research.get("hero_stat_bonus", 0)) * 0.02  # 2% of hero atk per hero
+                hero_def_bonus += hs.get("def", 0) * (1 + self.research.get("hero_stat_bonus", 0)) * 0.02
             stats["atk"] = stats.get("atk", 0) * (1 + hero_atk_bonus)
             stats["def"] = stats.get("def", 0) * (1 + hero_def_bonus)
 

@@ -181,4 +181,5 @@ class SettingsState(GameState):
     def _on_back(self):
         self._sm.play("click")
         self.game.show_fps = self.show_fps
+        self.game.save_preferences()
         self.game.state_manager.pop()

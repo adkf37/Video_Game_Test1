@@ -6,6 +6,7 @@ Listens to EventBus events and updates quest progress automatically.
 from __future__ import annotations
 import json
 import os
+import time
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "quests.json")
 
@@ -107,7 +108,8 @@ class QuestSystem:
 
     def _on_campaign_complete(self, **kw):
         for q in self._active_quests("campaign_complete"):
-            q.increment(1)
+            if kw.get("first_clear", True) or q.definition.category == "daily":
+                q.increment(1)
 
     def _on_research_complete(self, **kw):
         for q in self._active_quests("research_complete"):
@@ -121,21 +123,31 @@ class QuestSystem:
     # ── Queries ──────────────────────────────────────────
     def _active_quests(self, track_type: str) -> list[Quest]:
         """Get quests that are tracking this event type and not yet claimed."""
+        self._refresh_dailies()
         return [q for q in self.quests.values()
                 if q.definition.track_type == track_type
                 and not q.claimed]
+
+    def _refresh_dailies(self):
+        # Migrate already-claimed daily quests from v1, where they were one-shot.
+        now = time.time()
+        for q in self.quests.values():
+            if q.definition.repeatable and q.claimed and q.can_claim_daily(now):
+                q.reset()
 
     def get_achievements(self) -> list[Quest]:
         return [q for q in self.quests.values()
                 if q.definition.category == "achievement"]
 
     def get_dailies(self) -> list[Quest]:
+        self._refresh_dailies()
         return [q for q in self.quests.values()
                 if q.definition.category == "daily"]
 
     def get_claimable(self) -> list[Quest]:
+        self._refresh_dailies()
         return [q for q in self.quests.values()
-                if q.is_complete and not q.claimed]
+                if q.is_complete and not q.claimed and q.can_claim_daily(time.time())]
 
     @property
     def claimable_count(self) -> int:
@@ -155,7 +167,8 @@ class QuestSystem:
         # Grant rewards
         for resource, amount in q.definition.rewards.items():
             if resource == "xp":
-                continue  # handled elsewhere
+                self.event_bus.emit("hero_xp", amount=amount)
+                continue
             self.resource_mgr.add(resource, amount)
         q.claimed = True
         q.last_claim_time = current_time
@@ -175,6 +188,9 @@ class QuestSystem:
         }
 
     def from_dict(self, data: dict):
+        for quest in self.quests.values():
+            quest.reset()
+            quest.last_claim_time = 0
         for qid, qdata in data.items():
             if qid in self.quests:
                 self.quests[qid].progress = qdata.get("progress", 0)

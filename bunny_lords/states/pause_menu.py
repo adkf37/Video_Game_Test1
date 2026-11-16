@@ -93,7 +93,7 @@ class PauseMenuState(GameState):
             st.set_alpha(int(255 * alpha))
             surface.blit(st,
                          (self.panel_rect.centerx - st.get_width() // 2,
-                          self.panel_rect.bottom - 48))
+                          self.panel_rect.bottom + 16))
 
     def _on_resume(self):
         self._sm.play("click")
@@ -102,7 +102,8 @@ class PauseMenuState(GameState):
     def _on_save(self):
         self._sm.play("save")
         if self._base_view:
-            save_game(self._base_view, "manual_save")
+            if not self._base_view.save_progress("manual_save"):
+                return
         self._saved_flash = 2.0
 
     def _on_settings(self):
@@ -113,7 +114,8 @@ class PauseMenuState(GameState):
         self._sm.play("click")
         # Auto-save before quitting
         if self._base_view:
-            save_game(self._base_view, "autosave")
+            if not self._base_view.save_progress("autosave"):
+                return
         # Pop pause menu + whatever is below, go to main menu
         self.game.state_manager.pop()  # pop pause
         self.game.state_manager.replace("main_menu")

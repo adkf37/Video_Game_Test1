@@ -5,7 +5,7 @@ import pygame
 import math
 from core.state_machine import GameState
 from systems.sound_manager import get_sound_manager
-from systems.save_system import list_saves, load_game, delete_save
+from systems.save_system import list_saves, load_game
 from utils.asset_loader import render_text
 from utils.draw_helpers import draw_bunny_icon, draw_rounded_panel
 import settings as S
@@ -24,6 +24,7 @@ class MainMenuState(GameState):
 
     def enter(self, **params):
         self.time = 0.0
+        self._error = ""
         self._check_saves()
         self._build_buttons()
 
@@ -33,9 +34,9 @@ class MainMenuState(GameState):
 
     def _build_buttons(self):
         self._buttons.clear()
-        cx = S.SCREEN_WIDTH // 2
-        by = S.SCREEN_HEIGHT // 2 + 80
-        bw, bh = 260, 52
+        cx = 232
+        by = 400
+        bw, bh = 320, 48
         gap = 62
 
         if self._has_save:
@@ -82,76 +83,52 @@ class MainMenuState(GameState):
 
     def update(self, dt: float):
         self.time += dt
-        # Particles
-        if int(self.time * 10) % 3 == 0:
-            import random
-            self._particles.append({
-                "x": random.randint(0, S.SCREEN_WIDTH),
-                "y": S.SCREEN_HEIGHT + 5,
-                "vy": random.uniform(-40, -80),
-                "vx": random.uniform(-10, 10),
-                "life": random.uniform(2, 5),
-                "size": random.randint(2, 5),
-                "color": random.choice([S.COLOR_ACCENT, S.COLOR_ACCENT2,
-                                        (255, 200, 150)])
-            })
-        for p in self._particles:
-            p["x"] += p["vx"] * dt
-            p["y"] += p["vy"] * dt
-            p["life"] -= dt
-        self._particles = [p for p in self._particles if p["life"] > 0]
 
     def draw(self, surface: pygame.Surface):
+        from ui.kingdom import landscape, label, tree
+        from utils.draw_helpers import draw_building_shape
         surface.fill(S.COLOR_BG)
-
-        # Particles
-        for p in self._particles:
-            pygame.draw.circle(surface, p["color"],
-                               (int(p["x"]), int(p["y"])), p["size"])
-
-        # Title
-        title_surf = render_text("Bunny Lords", S.FONT_TITLE,
-                                 S.COLOR_ACCENT, bold=True)
-        title_rect = title_surf.get_rect(
-            center=(S.SCREEN_WIDTH // 2,
-                    S.SCREEN_HEIGHT // 2 - 160))
-        surface.blit(title_surf, title_rect)
-
-        # Subtitle
-        sub_surf = render_text("A Kingdom of Fluff & Strategy", S.FONT_MD,
-                               S.COLOR_TEXT_DIM)
-        sub_rect = sub_surf.get_rect(
-            center=(S.SCREEN_WIDTH // 2, title_rect.bottom + 10))
-        surface.blit(sub_surf, sub_rect)
-
-        # Bouncing bunny
-        bounce_y = math.sin(self.time * 2.5) * 12
-        bunny_rect = pygame.Rect(0, 0, 100, 100)
-        bunny_rect.center = (S.SCREEN_WIDTH // 2,
-                             S.SCREEN_HEIGHT // 2 - 40 + int(bounce_y))
-        draw_bunny_icon(surface, bunny_rect, S.COLOR_WHITE)
-
-        # Buttons
+        if not hasattr(self, "_landscape"):
+            self._landscape = landscape(820, 800)
+        surface.blit(self._landscape, (580, 0))
+        pygame.draw.circle(surface, (224, 203, 143), (1150, 130), 54)
+        # A winding path, village, and its little ruler.
+        pygame.draw.lines(surface, (153, 148, 101), False,
+                          [(910,800),(1000,640),(870,520),(1010,390)], 42)
+        for bid, rect in [("castle", (880,275,200,200)), ("carrot_farm", (700,490,110,110)),
+                          ("lumber_burrow", (1110,450,110,110)), ("academy", (1100,620,100,100))]:
+            draw_building_shape(surface, pygame.Rect(rect), S.BUILDING_COLORS[bid], bid)
+        draw_bunny_icon(surface, pygame.Rect(900,560+int(math.sin(self.time*2)*6),90,90), (247,237,211))
+        label(surface, "A KINGDOM OF FLUFF & STRATEGY", (72,110), 14, S.COLOR_ACCENT, True)
+        label(surface, "Bunny", (68,153), 84, S.COLOR_TEXT, True)
+        label(surface, "Lords", (68,236), 84, S.COLOR_ACCENT, True)
+        label(surface, "Build a burrow. Raise a brigade.", (72,342), 21)
+        label(surface, "Make a little history.", (72,371), 18, S.COLOR_TEXT_DIM)
         for btn in self._buttons:
-            bc = S.COLOR_BUTTON_HOVER if btn["hover"] else btn["color"]
-            draw_rounded_panel(surface, btn["rect"], bc,
-                               border_color=S.COLOR_WHITE, radius=12, alpha=240)
-            bt = render_text(btn["text"], S.FONT_LG, S.COLOR_WHITE, bold=True)
-            br = bt.get_rect(center=btn["rect"].center)
-            surface.blit(bt, br)
+            color = tuple(min(255,c+18) for c in btn["color"]) if btn["hover"] else btn["color"]
+            draw_rounded_panel(surface, btn["rect"], color, radius=9, alpha=240)
+            text = render_text(btn["text"], 20, S.COLOR_WHITE, bold=True)
+            surface.blit(text, text.get_rect(center=btn["rect"].center))
+        label(surface, getattr(self, "_error", ""), (72,710), 13, S.COLOR_DANGER)
+        label(surface, "WOODLAND UPDATE  /  v2.0", (72,755), 12, S.COLOR_TEXT_DIM, True)
+        label(surface, "F11  Fullscreen", (1200,765), 12, (220,231,208))
 
-        # Version
-        ver = render_text("v1.0 — Bunny Lords", S.FONT_SM, S.COLOR_TEXT_DIM)
-        surface.blit(ver, (10, S.SCREEN_HEIGHT - 26))
-
-    # ── Actions ──────────────────────────────────────────
     def _new_game(self):
         """Start a fresh game by resetting all progress."""
-        # Delete existing save files to start completely fresh
+        # Archive existing slots before a new autosave can replace them.
+        import shutil
+        import time
+        from pathlib import Path
         saves = list_saves()
-        for save in saves:
-            delete_save(save["path"])
-        
+        if saves:
+            archive = Path(saves[0]["path"]).parent / "archive" / str(time.time_ns())
+            try:
+                archive.mkdir(parents=True, exist_ok=True)
+                for saved in saves:
+                    shutil.copy2(saved["path"], archive / saved["filename"])
+            except OSError:
+                self._error = "Could not archive your previous kingdom. Check saves folder permissions."
+                return
         # Access base_view state and reset it
         base_state = self.game.state_manager._registry.get("base_view")
         if base_state:
@@ -161,12 +138,12 @@ class MainMenuState(GameState):
     def _continue_game(self):
         """Load the most recent save and start."""
         saves = list_saves()
-        if saves:
-            # Access base_view state to load into
-            base_state = self.game.state_manager._registry.get("base_view")
-            if base_state:
-                load_game(base_state, saves[0]["path"])  # type: ignore[arg-type]
-        self.game.state_manager.transition_to("base_view")
+        base = self.game.state_manager._registry.get("base_view")
+        for saved in saves:
+            if base and load_game(base, saved["path"]):
+                self.game.state_manager.transition_to("base_view")
+                return
+        self._error = "This save could not be loaded. Your existing files have been preserved."
 
     def _open_settings(self):
         self._sm.play("click")

@@ -5,6 +5,7 @@ Shows quest progress, claimable rewards, and categories.
 """
 from __future__ import annotations
 import pygame
+import time
 
 from systems.quest_system import QuestSystem, Quest
 from systems.sound_manager import get_sound_manager
@@ -187,7 +188,7 @@ class QuestPanel:
             # Background
             if q.claimed:
                 bg = (40, 50, 40)
-            elif q.is_complete:
+            elif q.is_complete and q.can_claim_daily(time.time()):
                 bg = (50, 60, 40)
             elif i == self._hover_idx:
                 bg = S.COLOR_PANEL_LIGHT
@@ -230,15 +231,19 @@ class QuestPanel:
             # Claim button / status
             claim_rect = pygame.Rect(
                 item_rect.right - 110, iy + 10, 90, 30)
-            if q.is_complete and not q.claimed:
+            if q.is_complete and not q.claimed and q.can_claim_daily(time.time()):
                 draw_rounded_panel(surface, claim_rect, S.COLOR_ACCENT2,
                                    radius=6, alpha=230)
                 ct = render_text("Claim", S.FONT_SM - 2, S.COLOR_BLACK,
                                  bold=True)
                 surface.blit(ct, (claim_rect.centerx - ct.get_width() // 2,
                                   claim_rect.centery - ct.get_height() // 2))
+            elif not q.can_claim_daily(time.time()):
+                remaining = max(0, int(86400 - (time.time() - q.last_claim_time)))
+                ct = render_text(f"{remaining//3600}h {(remaining%3600)//60}m", S.FONT_SM - 2, S.COLOR_TEXT_DIM)
+                surface.blit(ct, (claim_rect.x, claim_rect.y + 4))
             elif q.claimed:
-                ct = render_text("Claimed ✓", S.FONT_SM - 2,
+                ct = render_text("Claimed OK", S.FONT_SM - 2,
                                  S.COLOR_TEXT_DIM)
                 surface.blit(ct, (claim_rect.x, claim_rect.y + 4))
 

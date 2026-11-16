@@ -144,10 +144,18 @@ class StateManager:
     def update(self, dt: float):
         self.transition.update(dt)
         if self._stack:
+            base = self._registry.get("base_view")
+            if base in self._stack and self.current in (
+                    self._registry.get("hero_management"), self._registry.get("world_map")):
+                base.update(dt)
             self._stack[-1].update(dt)
 
     def draw(self, surface: pygame.Surface):
         """Draw all states; non-overlay states clear first."""
-        for state in self._stack:
+        start = 0
+        for i, state in enumerate(self._stack):
+            if not state.IS_OVERLAY:
+                start = i
+        for state in self._stack[start:]:
             state.draw(surface)
         self.transition.draw(surface)

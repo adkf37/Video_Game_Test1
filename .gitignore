@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+bunny_lords/artifacts/
+bunny_lords/preferences.json
+bunny_lords/preferences.tmp
+bunny_lords/saves/*.bak
+bunny_lords/saves/*.tmp
+bunny_lords/saves/archive/
+

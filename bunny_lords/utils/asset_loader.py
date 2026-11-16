@@ -57,11 +57,14 @@ def render_text(text: str, size: int, color: tuple = (240, 240, 240),
                 font_name: str | None = None, bold: bool = False) -> pygame.Surface:
     key = (text, size, color, font_name, bold)
     if key not in _text_cache:
+        if len(_text_cache) >= 2048:
+            _text_cache.clear()
         font = get_font(size, font_name)
         font.set_bold(bold)
         _text_cache[key] = font.render(text, True, color)
         font.set_bold(False)
-    return _text_cache[key]
+    # Callers animate alpha; never let that mutate another widget's text.
+    return _text_cache[key].copy()
 
 
 def clear_text_cache():
@@ -74,3 +77,18 @@ def load_sound(subpath: str) -> pygame.mixer.Sound:
         path = _full(subpath)
         _sound_cache[subpath] = pygame.mixer.Sound(path)
     return _sound_cache[subpath]
+
+
+def wrap_text(text: str, size: int, width: int) -> list[str]:
+    lines, current = [], ""
+    font = get_font(size)
+    for word in text.split():
+        candidate = f"{current} {word}".strip()
+        if current and font.size(candidate)[0] > width:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines

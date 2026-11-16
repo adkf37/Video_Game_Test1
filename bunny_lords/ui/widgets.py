@@ -16,45 +16,15 @@ import settings as S
 # ═══════════════════════════════════════════════════════════
 class ResourceBar:
     """Horizontal bar at the top of the screen showing all resources."""
-    HEIGHT = 52
+    HEIGHT = 84
 
     def __init__(self, resource_mgr):
         self.resource_mgr = resource_mgr
         self.rect = pygame.Rect(0, 0, S.SCREEN_WIDTH, self.HEIGHT)
 
     def draw(self, surface: pygame.Surface):
-        # Background
-        draw_rounded_panel(surface, self.rect, S.COLOR_PANEL,
-                           border_color=S.COLOR_GRID_LINE, radius=0, alpha=240)
-
-        names = self.resource_mgr.resource_names
-        slot_w = S.SCREEN_WIDTH // len(names)
-        for i, rid in enumerate(names):
-            x = i * slot_w + 16
-            y = 8
-            color = tuple(S.RESOURCE_COLORS.get(rid, S.COLOR_TEXT))
-            amount = self.resource_mgr.get(rid)
-            cap = self.resource_mgr.capacity.get(rid, 0)
-            rdef = self.resource_mgr.get_def(rid)
-
-            # Icon circle
-            pygame.draw.circle(surface, color, (x + 12, self.HEIGHT // 2), 10)
-            pygame.draw.circle(surface, S.COLOR_WHITE,
-                               (x + 12, self.HEIGHT // 2), 10, 2)
-
-            # Amount text
-            amount_str = _format_number(amount)
-            cap_str = _format_number(cap)
-            txt = render_text(f"{rdef.get('name', rid)}: {amount_str} / {cap_str}",
-                              S.FONT_SM, S.COLOR_TEXT)
-            surface.blit(txt, (x + 28, y + 2))
-
-            # Mini progress bar
-            bar_rect = pygame.Rect(x + 28, y + 24, slot_w - 60, 10)
-            pct = amount / cap if cap > 0 else 0
-            fg = color if pct < 0.9 else S.COLOR_DANGER
-            draw_progress_bar(surface, bar_rect, pct, fg_color=fg,
-                              bg_color=S.COLOR_PANEL_LIGHT)
+        from ui.kingdom import draw_resource_bar
+        draw_resource_bar(surface, self.resource_mgr)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -73,7 +43,7 @@ class BuildMenuPanel:
         self.visible = False
         self.rect = pygame.Rect(S.SCREEN_WIDTH - self.WIDTH, ResourceBar.HEIGHT,
                                 self.WIDTH,
-                                S.SCREEN_HEIGHT - ResourceBar.HEIGHT)
+                                S.SCREEN_HEIGHT - ResourceBar.HEIGHT - 80)
         self._items: list[str] = []
         self._scroll_y = 0
         self._hover_idx = -1
@@ -97,18 +67,25 @@ class BuildMenuPanel:
             return False
         if event.type == pygame.MOUSEMOTION:
             if self.rect.collidepoint(event.pos):
-                rel_y = event.pos[1] - self.rect.y + self._scroll_y
+                if event.pos[1] < self.rect.y + 46:
+                    self._hover_idx = -1
+                    return True
+                rel_y = event.pos[1] - self.rect.y - 46 + self._scroll_y
                 self._hover_idx = rel_y // self.ITEM_HEIGHT
                 return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
-                rel_y = event.pos[1] - self.rect.y + self._scroll_y
+                if event.pos[1] < self.rect.y + 46:
+                    self._hover_idx = -1
+                    return True
+                rel_y = event.pos[1] - self.rect.y - 46 + self._scroll_y
                 idx = rel_y // self.ITEM_HEIGHT
                 if 0 <= idx < len(self._items):
                     self.on_select(self._items[idx])
                 return True
         if event.type == pygame.MOUSEWHEEL and self.rect.collidepoint(pygame.mouse.get_pos()):
-            self._scroll_y = max(0, self._scroll_y - event.y * 30)
+            limit = max(0, len(self._items) * self.ITEM_HEIGHT - self.rect.height + 46)
+            self._scroll_y = max(0, min(limit, self._scroll_y - event.y * 30))
             return True
         return False
 
@@ -171,8 +148,8 @@ class BuildMenuPanel:
 class BuildingInfoPanel:
     """Panel showing details about a selected / clicked building."""
 
-    WIDTH = 320
-    HEIGHT = 320
+    WIDTH = 380
+    HEIGHT = 410
 
     def __init__(self, resource_mgr, on_upgrade, on_close):
         self.resource_mgr = resource_mgr
@@ -231,7 +208,7 @@ class BuildingInfoPanel:
         # Close button
         self._close_btn.topleft = (self.rect.right - 36, self.rect.y + 6)
         close_color = S.COLOR_DANGER if self._close_hover else S.COLOR_TEXT_DIM
-        ct = render_text("✕", S.FONT_MD, close_color, bold=True)
+        ct = render_text("X", S.FONT_MD, close_color, bold=True)
         surface.blit(ct, self._close_btn.topleft)
 
         # Building icon + name
@@ -247,9 +224,11 @@ class BuildingInfoPanel:
         y += 64
 
         # Description
-        desc = render_text(bdef.description, S.FONT_SM - 2, S.COLOR_TEXT_DIM)
-        surface.blit(desc, (x, y))
-        y += 24
+        from utils.asset_loader import wrap_text
+        for line in wrap_text(bdef.description, S.FONT_SM - 2, self.WIDTH - 28):
+            surface.blit(render_text(line, S.FONT_SM - 2, S.COLOR_TEXT_DIM), (x, y))
+            y += 20
+        y += 4
 
         # Production (if applicable)
         prod = b.production
@@ -316,6 +295,7 @@ class ToastManager:
         self._toasts: list[dict] = []
 
     def show(self, text: str, color: tuple = S.COLOR_ACCENT, duration: float = 3.0):
+        self._toasts = self._toasts[-3:]
         self._toasts.append({
             "text": text, "color": color,
             "life": duration, "max_life": duration
@@ -359,17 +339,17 @@ class Button:
         if event.type == pygame.MOUSEMOTION:
             self.hover = self.rect.collidepoint(event.pos)
         if (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
-                and self.hover and self.enabled):
+                and self.rect.collidepoint(event.pos) and self.enabled):
             self.callback()
             return True
         return False
 
     def draw(self, surface: pygame.Surface):
-        c = S.COLOR_BUTTON_HOVER if self.hover else self.color
+        c = tuple(min(255, v + 22) for v in self.color) if self.hover else self.color
         if not self.enabled:
             c = (70, 70, 80)
-        draw_rounded_panel(surface, self.rect, c,
-                           border_color=S.COLOR_WHITE, radius=8, alpha=230)
+        pygame.draw.rect(surface, (10, 19, 24), self.rect.move(0, 3), border_radius=8)
+        draw_rounded_panel(surface, self.rect, c, radius=8, alpha=245)
         txt = render_text(self.text, S.FONT_SM, self.text_color, bold=True)
         tr = txt.get_rect(center=self.rect.center)
         surface.blit(txt, tr)

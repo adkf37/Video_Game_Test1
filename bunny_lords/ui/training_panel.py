@@ -12,7 +12,7 @@ class TrainingPanel:
     """Full-screen-ish overlay for troop training at the barracks."""
 
     WIDTH = 520
-    HEIGHT = 540
+    HEIGHT = 600
 
     def __init__(self, troop_defs, training_system, resource_mgr,
                  on_close, on_toast):
@@ -90,9 +90,10 @@ class TrainingPanel:
             list_top = self.rect.y + 100
             for i, tdef in enumerate(troops):
                 item_y = list_top + i * 64 - self._scroll_y
-                train_btn = pygame.Rect(self.rect.right - 90, item_y + 8,
-                                        70, 40)
-                if train_btn.collidepoint(event.pos):
+                train_btn = pygame.Rect(self.rect.right - 86, item_y + 10,
+                                        70, 36)
+                if (train_btn.collidepoint(event.pos) and
+                        self.rect.y + 100 <= event.pos[1] < self.rect.bottom - 200):
                     ok = self.training_system.start_training(
                         tdef.id, self._train_count, self.speed_mult)
                     if ok:
@@ -105,10 +106,10 @@ class TrainingPanel:
                         self.on_toast(reason or "Cannot train!", S.COLOR_DANGER)
                     return True
             # Check queue cancel buttons
-            queue_top = self.rect.y + self.HEIGHT - 150
+            queue_top = self.rect.bottom - 190
             for i in range(len(self.training_system.queue)):
                 cancel_btn = pygame.Rect(self.rect.right - 70,
-                                         queue_top + 6 + i * 32, 50, 24)
+                                         queue_top + 22 + i * 32, 50, 24)
                 if cancel_btn.collidepoint(event.pos):
                     self.training_system.cancel_job(i)
                     self.on_toast("Training cancelled, resources refunded.",
@@ -119,7 +120,8 @@ class TrainingPanel:
 
         if event.type == pygame.MOUSEWHEEL and self.rect.collidepoint(
                 pygame.mouse.get_pos()):
-            self._scroll_y = max(0, self._scroll_y - event.y * 30)
+            limit = max(0, len(self._available_troops())*64 - (self.HEIGHT-300))
+            self._scroll_y = max(0, min(limit, self._scroll_y - event.y * 30))
             return True
 
         return False
@@ -141,11 +143,11 @@ class TrainingPanel:
         # Close
         self._close_btn.topleft = (self.rect.right - 36, self.rect.y + 8)
         clr = S.COLOR_DANGER if self._hover_close else S.COLOR_TEXT_DIM
-        surface.blit(render_text("✕", S.FONT_MD, clr, bold=True),
+        surface.blit(render_text("X", S.FONT_MD, clr, bold=True),
                      self._close_btn.topleft)
 
         # Title
-        surface.blit(render_text("⚔ Barracks — Train Troops", S.FONT_LG,
+        surface.blit(render_text("Barracks / Train Troops", S.FONT_LG,
                                  S.COLOR_ACCENT, bold=True), (x, y))
         y += 40
 
@@ -168,8 +170,8 @@ class TrainingPanel:
 
         # Troop list
         troops = self._available_troops()
-        list_top = y
-        list_height = self.HEIGHT - 150 - (y - self.rect.y)
+        list_top = self.rect.y + 100
+        list_height = self.HEIGHT - 300
         clip_rect = pygame.Rect(self.rect.x, list_top,
                                 self.WIDTH, list_height)
         old_clip = surface.get_clip()
@@ -219,7 +221,7 @@ class TrainingPanel:
         surface.set_clip(old_clip)
 
         # ── Training queue ───────────────────────────────
-        queue_top = self.rect.y + self.HEIGHT - 145
+        queue_top = self.rect.bottom - 190
         pygame.draw.line(surface, S.COLOR_GRID_LINE,
                          (self.rect.x + 10, queue_top - 4),
                          (self.rect.right - 10, queue_top - 4), 1)
@@ -253,7 +255,7 @@ class TrainingPanel:
                 cancel_btn = pygame.Rect(self.rect.right - 70, jy + 2, 50, 24)
                 draw_rounded_panel(surface, cancel_btn, S.COLOR_DANGER,
                                    radius=4, alpha=200)
-                surface.blit(render_text("✕", S.FONT_SM - 2, S.COLOR_WHITE,
+                surface.blit(render_text("X", S.FONT_SM - 2, S.COLOR_WHITE,
                                          bold=True),
                              (cancel_btn.x + 18, cancel_btn.y + 3))
 
@@ -316,7 +318,7 @@ class ArmyOverviewPanel:
         # Close
         self._close_btn.topleft = (self.rect.right - 36, self.rect.y + 8)
         clr = S.COLOR_DANGER if self._hover_close else S.COLOR_TEXT_DIM
-        surface.blit(render_text("✕", S.FONT_MD, clr, bold=True),
+        surface.blit(render_text("X", S.FONT_MD, clr, bold=True),
                      self._close_btn.topleft)
 
         # Title

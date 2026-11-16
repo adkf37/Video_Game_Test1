@@ -2,6 +2,8 @@
 Game — Main application class.  Owns the loop, state manager, and event bus.
 """
 import pygame
+import json
+from pathlib import Path
 from core.state_machine import StateManager
 from core.event_bus import EventBus
 from systems.sound_manager import get_sound_manager
@@ -13,20 +15,24 @@ class Game:
         # Pygame init
         pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
         pygame.init()
-        pygame.mixer.set_num_channels(16)
+        if pygame.mixer.get_init():
+            pygame.mixer.set_num_channels(16)
 
-        self.screen = pygame.display.set_mode(
-            (S.SCREEN_WIDTH, S.SCREEN_HEIGHT))
+        self.fullscreen = False
+        self._display_flags = pygame.RESIZABLE
+        if pygame.display.get_driver() != "dummy":
+            self._display_flags |= pygame.SCALED
+        self.screen = pygame.display.set_mode((S.SCREEN_WIDTH, S.SCREEN_HEIGHT), self._display_flags)
         pygame.display.set_caption(S.GAME_TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
-        self.show_fps = True  # toggle for FPS counter
-        self.show_fps = True
+        self.show_fps = False
 
         # Core systems
         self.event_bus = EventBus()
         self.state_manager = StateManager()
         self.sound_manager = get_sound_manager()
+        self._load_preferences()
 
         # Register states (imported here to avoid circular deps)
         from states.main_menu import MainMenuState
@@ -38,8 +44,6 @@ class Game:
         from states.pause_menu import PauseMenuState
         from states.help_screen import HelpScreenState
         from states.victory_animation import VictoryAnimationState
-        from states.settings_state import SettingsState
-        from states.pause_menu import PauseMenuState
 
         self.state_manager.register("main_menu", MainMenuState(self))
         self.state_manager.register("base_view", BaseViewState(self))
@@ -50,8 +54,6 @@ class Game:
         self.state_manager.register("pause_menu", PauseMenuState(self))
         self.state_manager.register("help_screen", HelpScreenState(self))
         self.state_manager.register("victory_animation", VictoryAnimationState(self))
-        self.state_manager.register("settings", SettingsState(self))
-        self.state_manager.register("pause_menu", PauseMenuState(self))
 
         # Start at main menu
         self.state_manager.push("main_menu")
@@ -64,6 +66,10 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                    self.fullscreen = not self.fullscreen
+                    flags = self._display_flags | (pygame.FULLSCREEN if self.fullscreen else 0)
+                    self.screen = pygame.display.set_mode((S.SCREEN_WIDTH, S.SCREEN_HEIGHT), flags)
                 else:
                     self.state_manager.handle_event(event)
 
@@ -80,4 +86,40 @@ class Game:
 
             pygame.display.flip()
 
+        self.save_on_exit()
+        self.save_preferences()
         pygame.quit()
+
+    def save_on_exit(self):
+        base = self.state_manager._registry["base_view"]
+        if base in self.state_manager.stack and base.buildings:
+            battle = self.state_manager._registry["battle_view"]
+            if battle in self.state_manager.stack and battle._phase == "battle":
+                battle._end_battle()
+            base.save_progress()
+
+    @property
+    def preferences_path(self):
+        return Path(__file__).resolve().parents[1] / "preferences.json"
+
+    def _load_preferences(self):
+        try:
+            data = json.loads(self.preferences_path.read_text(encoding="utf-8"))
+            self.sound_manager.set_master_volume(float(data.get("master_volume", .7)))
+            self.sound_manager.set_sfx_volume(float(data.get("sfx_volume", .5)))
+            self.sound_manager.enabled = bool(data.get("sound_enabled", True))
+            self.show_fps = bool(data.get("show_fps", False))
+        except (OSError, ValueError, TypeError, AttributeError):
+            pass
+
+    def save_preferences(self):
+        data = {"master_volume": self.sound_manager.master_volume,
+                "sfx_volume": self.sound_manager.sfx_volume,
+                "sound_enabled": self.sound_manager.enabled, "show_fps": self.show_fps}
+        try:
+            path = self.preferences_path
+            temporary = path.with_suffix(".tmp")
+            temporary.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            temporary.replace(path)
+        except OSError:
+            pass

@@ -25,6 +25,7 @@ from ui.training_panel import TrainingPanel, ArmyOverviewPanel
 from ui.research_panel import ResearchPanel
 from ui.quest_panel import QuestPanel
 from ui.tooltip import Tooltip
+from ui.kingdom import KingdomDashboard
 from utils.asset_loader import render_text
 from utils.draw_helpers import (draw_rounded_panel, draw_building_shape,
                                 draw_progress_bar, draw_bunny_icon)
@@ -108,6 +109,14 @@ class BaseViewState(GameState):
             on_toast=lambda text, color: self.toasts.show(text, color)
         )
         self.toasts = ToastManager()
+        self.dashboard = KingdomDashboard(self)
+        self.event_bus.subscribe("hero_xp", self._award_hero_xp)
+        self._collect_btn = Button(pygame.Rect(652, 635, 218, 36),
+                                   "Collect all  [C]", self._collect_all, color=(67, 116, 86))
+        self._train_btn = Button(pygame.Rect(886, 635, 218, 36),
+                                 "Train troops  [T]", self._open_training, color=(72, 100, 126))
+        self._upgrade_btn = Button(pygame.Rect(1120, 635, 240, 36),
+                                   "Upgrade selected  [U]", self._upgrade_selected, color=(120, 100, 65))
 
         # Build button (bottom-right, opens menu)
         self._build_btn = Button(
@@ -184,14 +193,18 @@ class BaseViewState(GameState):
         self.research_system.total_time = 0.0
         
         # Reset quests
-        self.quest_system = QuestSystem(self.resource_mgr, self.event_bus)
+        self.quest_system.from_dict({})
         
         # Reset timers
         self.resource_tick_timer = 0.0
         self.autosave_timer = 0.0
         
         # Clear UI state
-        self._selected_build_id = None
+        self._placing = None
+        self._selected_cell = None
+        self._hover_cell = None
+        self._particles.clear()
+        self.build_menu.hide()
         self.info_panel.hide()
         self.training_panel.hide()
         self.army_panel.hide()
@@ -202,6 +215,7 @@ class BaseViewState(GameState):
         # Place starting castle
         self._place_building("castle", S.GRID_COLS // 2 - 1,
                            S.GRID_ROWS // 2 - 1, instant=True)
+        self.resource_mgr.refresh_economy(self.buildings)
 
     def enter(self, **params):
         # Place the starting castle at center (only if no buildings exist)
@@ -213,19 +227,22 @@ class BaseViewState(GameState):
     #  Events
     # ══════════════════════════════════════════════════════
     def handle_event(self, event: pygame.event.Event):
-        # UI panels consume events first (overlays on top)
-        if self.research_panel.handle_event(event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_u and self._selected_cell:
+            self.training_panel.hide()
+            self.research_panel.hide()
+            self._upgrade_selected()
             return
-        if self.quest_panel.handle_event(event):
-            return
-        if self.training_panel.handle_event(event):
-            return
-        if self.army_panel.handle_event(event):
-            return
+        for panel in (self.research_panel, self.quest_panel, self.training_panel, self.army_panel):
+            if panel.visible:
+                panel.handle_event(event)
+                return
         if self.info_panel.handle_event(event):
             return
         if self.build_menu.handle_event(event):
             return
+        for button in (self._collect_btn, self._train_btn, self._upgrade_btn):
+            if button.handle_event(event):
+                return
         if self._build_btn.handle_event(event):
             return
         if self._army_btn.handle_event(event):
@@ -250,15 +267,8 @@ class BaseViewState(GameState):
                 else:
                     occupant = self.grid[gy][gx]
                     if occupant:
-                        # Check if it's a resource building with click bonus available
                         if occupant.is_resource_building() and not occupant.building and occupant.click_available:
-                            resource = occupant.get_click_bonus_resource()
-                            if resource:
-                                self.resource_mgr.add(resource, 15)
-                                occupant.click_available = False
-                                self._sm.play("collect")
-                                self.toasts.show(f"+15 {resource.title()}!", S.COLOR_ACCENT2, 1.5)
-                            return
+                            self._collect_bonus(occupant)
                         self._select_building(occupant)
                     else:
                         self._selected_cell = cell
@@ -278,6 +288,22 @@ class BaseViewState(GameState):
                     self.info_panel.hide()
                 else:
                     self._open_pause_menu()
+            if event.key == pygame.K_c:
+                self._collect_all()
+            if event.key == pygame.K_t:
+                self._open_training()
+            if event.key == pygame.K_u:
+                self._upgrade_selected()
+            if event.key == pygame.K_F5:
+                self.save_progress("manual_save")
+            if event.key == pygame.K_F1:
+                self.game.state_manager.push("help_screen")
+            if event.key == pygame.K_r:
+                academy = next((b for b in self.buildings if b.id == "academy" and not b.building), None)
+                if academy:
+                    self._select_building(academy)
+                else:
+                    self.toasts.show("Build an Academy at Castle level 5 to research.", S.COLOR_ACCENT)
             if event.key == pygame.K_b:
                 self._toggle_build_menu()
             if event.key == pygame.K_a:
@@ -295,9 +321,9 @@ class BaseViewState(GameState):
     def update(self, dt: float):
         # Resource production tick
         self.resource_tick_timer += dt
-        if self.resource_tick_timer >= S.RESOURCE_TICK:
+        while self.resource_tick_timer >= S.RESOURCE_TICK:
             self.resource_tick_timer -= S.RESOURCE_TICK
-            self.resource_mgr.apply_production(self.buildings)
+            self.resource_mgr.apply_production(self.buildings, self.research_system.get_bonuses(), S.RESOURCE_TICK)
 
         # Building timers
         for b in self.buildings:
@@ -309,9 +335,6 @@ class BaseViewState(GameState):
                                     building_id=b.id, level=b.level)
                 self._sm.play("build_complete")
                 self._spawn_particles(b.grid_x, b.grid_y, count=20)
-                # Victory animation!
-                self.game.state_manager.push("victory_animation",
-                                              message=f"{b.name} Level {b.level}!")
                 # Refresh info panel if this building is selected
                 if (self.info_panel.visible and
                         self.info_panel.building is b):
@@ -328,18 +351,17 @@ class BaseViewState(GameState):
             self._sm.play("troop_trained")
 
         # Research system
-        finished = self.research_system.update(dt)
+        academy = next((b for b in self.buildings if b.id == "academy" and not b.building), None)
+        research_speed = (academy.definition.get_level_data(academy.level).get("research_speed", 1)
+                          if academy else 1)
+        finished = self.research_system.update(dt * research_speed)
         if finished:
             rdef = self.research_system.defs.get(finished)
             rname = rdef.name if rdef else finished
             self.toasts.show(f"Research complete: {rname}!", (80, 140, 220))
             self.event_bus.emit("research_complete", research_id=finished)
             self._sm.play("research_complete")
-            # Apply capacity bonuses immediately
-            bonuses = self.research_system.get_bonuses()
-            for res, amt in bonuses.get("capacity_bonus", {}).items():
-                base_cap = self.resource_mgr.get_def(res).get("base_capacity", 5000)
-                self.resource_mgr.capacity[res] = base_cap + amt
+        self.resource_mgr.refresh_economy(self.buildings, self.research_system.get_bonuses())
 
         # Quest system — update army power tracking
         self.quest_system.update_army_power(
@@ -349,12 +371,11 @@ class BaseViewState(GameState):
         self.autosave_timer += dt
         if self.autosave_timer >= S.AUTOSAVE_INTERVAL:
             self.autosave_timer = 0.0
-            save_game(self, "autosave")
-            self.toasts.show("Auto-saved", S.COLOR_TEXT_DIM, 1.5)
-            self._sm.play("save")
+            self.save_progress("autosave")
 
         # Tooltip — building hover info
-        if self._hover_cell and not self._placing:
+        modal_open = any(p.visible for p in (self.training_panel, self.research_panel, self.quest_panel, self.army_panel))
+        if self._hover_cell and not self._placing and not modal_open:
             gx, gy = self._hover_cell
             occupant = self.grid[gy][gx]
             if occupant:
@@ -398,12 +419,16 @@ class BaseViewState(GameState):
     def draw(self, surface: pygame.Surface):
         surface.fill(S.COLOR_BG)
 
+        self.dashboard.draw(surface)
         self._draw_grid(surface)
         self._draw_buildings(surface)
         self._draw_particles(surface)
 
         # HUD
         self.resource_bar.draw(surface)
+        self._collect_btn.draw(surface)
+        self._train_btn.draw(surface)
+        self._upgrade_btn.draw(surface)
         self.build_menu.draw(surface)
         self.info_panel.draw(surface)
         self.army_panel.draw(surface)
@@ -458,41 +483,27 @@ class BaseViewState(GameState):
             ghost.set_alpha(140)
             surface.blit(ghost, rect.topleft)
 
-        # Castle level indicator
-        castle = self._get_castle()
-        if castle:
-            cl_text = render_text(f"Castle Level {castle.level}",
-                                  S.FONT_SM, S.COLOR_ACCENT, bold=True)
-            surface.blit(cl_text, (S.SCREEN_WIDTH // 2 - cl_text.get_width() // 2,
-                                   S.SCREEN_HEIGHT - 30))
-
-    # ══════════════════════════════════════════════════════
-    #  Grid drawing
-    # ══════════════════════════════════════════════════════
     def _draw_grid(self, surface: pygame.Surface):
+        board = pygame.Rect(S.GRID_OFFSET_X-8, S.GRID_OFFSET_Y-8,
+                            S.GRID_COLS*S.TILE_SIZE+16, S.GRID_ROWS*S.TILE_SIZE+16)
+        pygame.draw.rect(surface, (30, 56, 43), board.move(0, 5), border_radius=12)
+        pygame.draw.rect(surface, (81, 108, 73), board, border_radius=12)
         for gy in range(S.GRID_ROWS):
             for gx in range(S.GRID_COLS):
-                rect = self._grid_to_screen(gx, gy)
-                # Tile fill
-                is_hover = (self._hover_cell == (gx, gy))
-                is_selected = (self._selected_cell == (gx, gy))
-                if is_hover and self._placing:
-                    fill = (*S.COLOR_ACCENT[:3], 40)
-                elif is_hover:
-                    fill = (*S.COLOR_PANEL_LIGHT[:3], 180)
-                elif is_selected:
-                    fill = (*S.COLOR_ACCENT[:3], 50)
-                else:
-                    fill = S.COLOR_GRID_EMPTY
-
-                tile = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-                pygame.draw.rect(tile, fill, (0, 0, rect.width, rect.height),
-                                 border_radius=4)
-                surface.blit(tile, rect.topleft)
-
-                # Grid border
-                pygame.draw.rect(surface, S.COLOR_GRID_LINE, rect, width=1,
-                                 border_radius=4)
+                rect = self._grid_to_screen(gx, gy).inflate(-2, -2)
+                fill = (57, 93, 66) if (gx+gy)%2 else (61, 98, 69)
+                pygame.draw.rect(surface, fill, rect, border_radius=5)
+                if not self.grid[gy][gx]:
+                    px, py = rect.x+12+(gx*17+gy*7)%34, rect.y+18+(gy*13)%30
+                    pygame.draw.line(surface, (81, 118, 77), (px,py), (px-2,py-4), 1)
+                    pygame.draw.line(surface, (81, 118, 77), (px,py), (px+3,py-3), 1)
+                if self._selected_cell == (gx, gy):
+                    pygame.draw.rect(surface, S.COLOR_ACCENT, rect, 2, border_radius=5)
+                if self._hover_cell == (gx, gy):
+                    color = S.COLOR_ACCENT2
+                    if self._placing and self.grid[gy][gx]:
+                        color = S.COLOR_DANGER
+                    pygame.draw.rect(surface, color, rect, 2, border_radius=5)
 
     def _draw_buildings(self, surface: pygame.Surface):
         for b in self.buildings:
@@ -557,6 +568,8 @@ class BaseViewState(GameState):
     # ══════════════════════════════════════════════════════
     def _place_building(self, bid: str, gx: int, gy: int,
                         instant: bool = False) -> Building | None:
+        if not (0 <= gx < S.GRID_COLS and 0 <= gy < S.GRID_ROWS) or self.grid[gy][gx]:
+            return None
         bdef = self.building_defs.get(bid)
         if not bdef:
             return None
@@ -610,10 +623,12 @@ class BaseViewState(GameState):
         self.info_panel.show(building)
 
     def _select_building(self, building: Building):
+        self._selected_cell = (building.grid_x, building.grid_y)
         # If clicking barracks, open training panel instead
         if building.id == "barracks" and not building.building:
             barracks_data = building.definition.get_level_data(building.level)
             speed = barracks_data.get("training_speed", 1.0) if barracks_data else 1.0
+            speed *= 1 + self.research_system.get_bonuses()["training_speed_bonus"]
             self.training_panel.show(building.level, speed)
             return
         # If clicking academy, open research panel
@@ -646,7 +661,7 @@ class BaseViewState(GameState):
                 data = self.building_defs["castle"].get_level_data(lvl)
                 if data and "unlocks" in data:
                     unlocked.update(data["unlocks"])
-            self.build_menu.show(list(unlocked), castle_lvl)
+            self.build_menu.show([bid for bid in self.building_defs if bid in unlocked], castle_lvl)
             self.info_panel.hide()
 
     def _on_build_menu_select(self, building_id: str):
@@ -718,3 +733,53 @@ class BaseViewState(GameState):
         """Push the pause menu overlay."""
         self._sm.play("click")
         self.game.state_manager.push("pause_menu", base_view=self)
+
+    def _collect_bonus(self, building):
+        resource = building.get_click_bonus_resource()
+        amount = self.resource_mgr.add(resource, 15 * max(1, building.level))
+        if amount > 0:
+            building.click_available = False
+            building.click_timer = 0
+            self._spawn_particles(building.grid_x, building.grid_y, 8)
+        return amount
+
+    def _collect_all(self):
+        total = sum(self._collect_bonus(b) for b in self.buildings
+                    if b.is_resource_building() and not b.building and b.click_available)
+        self.toasts.show(f"Harvest collected: +{int(total)} resources" if total else
+                         "No harvest ready, or storage is full.", S.COLOR_ACCENT2)
+        if total:
+            self._sm.play("collect")
+
+    def _open_training(self):
+        barracks = next((b for b in self.buildings if b.id == "barracks" and not b.building), None)
+        if barracks:
+            self._select_building(barracks)
+        else:
+            self.toasts.show("Build a Barracks at Castle level 3 to train troops.", S.COLOR_ACCENT)
+
+    def _upgrade_selected(self):
+        if self._selected_cell:
+            x, y = self._selected_cell
+            building = self.grid[y][x]
+            if building:
+                self.info_panel.show(building)
+                self._on_upgrade(building)
+                return
+        self.toasts.show("Select a building on the map first.", S.COLOR_ACCENT)
+
+    def _award_hero_xp(self, amount=0, **kwargs):
+        bonus = self.research_system.get_bonuses()["hero_xp_bonus"]
+        for hero in self.heroes:
+            levels = hero.add_xp(int(amount * (1 + bonus)))
+            if levels:
+                self.toasts.show(f"{hero.name} reached level {hero.level}!", S.COLOR_ACCENT2)
+
+    def save_progress(self, slot="autosave"):
+        try:
+            save_game(self, slot)
+        except OSError:
+            self.toasts.show("Save failed. Check that your saves folder is writable.", S.COLOR_DANGER)
+            return False
+        self.toasts.show("Kingdom saved", S.COLOR_TEXT_DIM, 1.5)
+        return True

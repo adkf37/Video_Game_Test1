@@ -57,6 +57,8 @@ class TrainingSystem:
 
     def can_train(self, troop_id: str, count: int = 1) -> tuple[bool, str]:
         """Check if training is possible. Returns (ok, reason)."""
+        if not isinstance(count, int) or count <= 0:
+            return False, "Choose at least one troop"
         tdef = self.troop_defs.get(troop_id)
         if not tdef:
             return False, "Unknown troop type"
@@ -71,7 +73,7 @@ class TrainingSystem:
                        speed_mult: float = 1.0) -> bool:
         """Start training troops. Deducts resources immediately."""
         ok, reason = self.can_train(troop_id, count)
-        if not ok:
+        if not ok or speed_mult <= 0:
             return False
         tdef = self.troop_defs[troop_id]
         total_cost = {r: amt * count for r, amt in tdef.cost.items()}
@@ -100,20 +102,23 @@ class TrainingSystem:
         if not self.queue:
             return completed
 
-        # Only the first job in queue actively trains
-        job = self.queue[0]
-        job.timer -= dt
-        while job.timer <= 0 and not job.is_complete:
+        # Carry elapsed time into the next job, and report every unit once.
+        while self.queue and dt >= 0:
+            job = self.queue[0]
+            if dt < job.timer:
+                job.timer -= dt
+                break
+            dt -= job.timer
             job.trained_count += 1
             self.army.add(job.troop_def.id, 1)
-            if not job.is_complete:
-                job.timer += job.time_per_unit
+            if completed and completed[-1][0] == job.troop_def.id:
+                completed[-1] = (job.troop_def.id, completed[-1][1] + 1)
             else:
-                job.timer = 0
-
-        if job.is_complete:
-            completed.append((job.troop_def.id, job.total_count))
-            self.queue.pop(0)
+                completed.append((job.troop_def.id, 1))
+            if job.is_complete:
+                self.queue.pop(0)
+            else:
+                job.timer = job.time_per_unit
 
         return completed
 
@@ -138,6 +143,10 @@ class TrainingSystem:
         for item in data:
             tdef = self.troop_defs.get(item["troop_id"])
             if tdef:
+                if (item["total_count"] <= 0 or item["time_per_unit"] <= 0
+                        or not 0 <= item.get("trained_count", 0) < item["total_count"]
+                        or item.get("timer", 0) < 0):
+                    raise ValueError("Invalid training job")
                 job = TrainingJob(tdef, item["total_count"],
                                   item["time_per_unit"])
                 job.trained_count = item.get("trained_count", 0)
