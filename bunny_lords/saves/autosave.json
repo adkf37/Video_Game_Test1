@@ -1,0 +1,178 @@
+{
+  "version": "1.0",
+  "timestamp": 1774978548.8451583,
+  "label": "autosave",
+  "castle_level": 1,
+  "resources": {
+    "resources": {
+      "carrots": 330.0,
+      "wood": 295.0,
+      "stone": 200.0,
+      "gold": 150.0
+    },
+    "capacity": {
+      "carrots": 10000.0,
+      "wood": 10000.0,
+      "stone": 10000.0,
+      "gold": 10000.0
+    }
+  },
+  "buildings": [
+    {
+      "id": "castle",
+      "grid_x": 3,
+      "grid_y": 3,
+      "level": 1,
+      "building": false,
+      "build_timer": 0.0,
+      "build_total": 0.0,
+      "_pending_level": 1,
+      "click_timer": 0.0,
+      "click_available": false
+    },
+    {
+      "id": "lumber_burrow",
+      "grid_x": 4,
+      "grid_y": 1,
+      "level": 1,
+      "building": false,
+      "build_timer": 0.0,
+      "build_total": 10,
+      "_pending_level": 1,
+      "click_timer": 2.385999999999997,
+      "click_available": true
+    },
+    {
+      "id": "lumber_burrow",
+      "grid_x": 5,
+      "grid_y": 1,
+      "level": 1,
+      "building": false,
+      "build_timer": 0.0,
+      "build_total": 10,
+      "_pending_level": 1,
+      "click_timer": 1.2120000000000002,
+      "click_available": false
+    },
+    {
+      "id": "carrot_farm",
+      "grid_x": 4,
+      "grid_y": 0,
+      "level": 0,
+      "building": true,
+      "build_timer": 4.423999999999987,
+      "build_total": 10,
+      "_pending_level": 1,
+      "click_timer": 0.0,
+      "click_available": false
+    }
+  ],
+  "army": {},
+  "training_queue": [],
+  "heroes": [
+    {
+      "id": "hero_1",
+      "level": 1,
+      "xp": 0,
+      "equipment": {
+        "weapon": null,
+        "armor": null,
+        "helmet": null,
+        "accessory": null
+      }
+    },
+    {
+      "id": "hero_2",
+      "level": 1,
+      "xp": 0,
+      "equipment": {
+        "weapon": null,
+        "armor": null,
+        "helmet": null,
+        "accessory": null
+      }
+    },
+    {
+      "id": "hero_3",
+      "level": 1,
+      "xp": 0,
+      "equipment": {
+        "weapon": null,
+        "armor": null,
+        "helmet": null,
+        "accessory": null
+      }
+    },
+    {
+      "id": "hero_4",
+      "level": 1,
+      "xp": 0,
+      "equipment": {
+        "weapon": null,
+        "armor": null,
+        "helmet": null,
+        "accessory": null
+      }
+    }
+  ],
+  "inventory": [],
+  "campaign_completed": [],
+  "research": {
+    "completed": [],
+    "current": null,
+    "timer": 0.0,
+    "total_time": 0.0
+  },
+  "quests": {
+    "q_build_5": {
+      "progress": 2,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_train_20": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_upgrade_castle_3": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_campaign_3": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_campaign_10": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_research_3": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_army_500": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_army_2000": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_daily_train": {
+      "progress": 0,
+      "claimed": false,
+      "last_claim_time": 0
+    },
+    "q_daily_build": {
+      "progress": 1,
+      "claimed": false,
+      "last_claim_time": 0
+    }
+  }
+}

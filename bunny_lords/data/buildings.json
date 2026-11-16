@@ -8,8 +8,8 @@
     "levels": {
       "1":  {"cost": {"carrots": 0,    "wood": 0,    "stone": 0,   "gold": 0},   "build_time": 0,   "unlocks": ["carrot_farm", "lumber_burrow"]},
       "2":  {"cost": {"carrots": 200,  "wood": 150,  "stone": 100, "gold": 50},  "build_time": 10,  "unlocks": ["stone_quarry"]},
-      "3":  {"cost": {"carrots": 500,  "wood": 400,  "stone": 300, "gold": 100}, "build_time": 15,  "unlocks": ["gold_mine", "warehouse"]},
-      "4":  {"cost": {"carrots": 1200, "wood": 1000, "stone": 800, "gold": 400}, "build_time": 20, "unlocks": ["barracks"]},
+      "3":  {"cost": {"carrots": 500,  "wood": 400,  "stone": 300, "gold": 100}, "build_time": 15,  "unlocks": ["barracks"]},
+      "4":  {"cost": {"carrots": 1200, "wood": 1000, "stone": 800, "gold": 400}, "build_time": 20, "unlocks": ["gold_mine", "warehouse"]},
       "5":  {"cost": {"carrots": 3000, "wood": 2500, "stone": 2000,"gold": 1000},"build_time": 30, "unlocks": ["academy", "wall"]}
     }
   },
@@ -62,7 +62,7 @@
     "category": "resource",
     "max_level": 25,
     "unique": false,
-    "requires_castle": 3,
+    "requires_castle": 2,
     "levels": {
       "1":  {"cost": {"carrots": 200,  "wood": 150,  "stone": 100, "gold": 10},  "build_time": 20,  "production": {"gold": 5}},
       "2":  {"cost": {"carrots": 500,  "wood": 350,  "stone": 250, "gold": 40},  "build_time": 45,  "production": {"gold": 10}},
@@ -77,7 +77,7 @@
     "category": "utility",
     "max_level": 25,
     "unique": false,
-    "requires_castle": 3,
+    "requires_castle": 2,
     "levels": {
       "1":  {"cost": {"carrots": 150, "wood": 120},  "build_time": 15, "storage_bonus": 2000},
       "2":  {"cost": {"carrots": 400, "wood": 300},  "build_time": 35, "storage_bonus": 5000},
@@ -92,13 +92,13 @@
     "category": "military",
     "max_level": 25,
     "unique": true,
-    "requires_castle": 4,
+    "requires_castle": 3,
     "levels": {
-      "1":  {"cost": {"carrots": 500,  "wood": 400,  "stone": 300},  "build_time": 45,  "training_speed": 1.0},
-      "2":  {"cost": {"carrots": 1200, "wood": 900,  "stone": 700},  "build_time": 100, "training_speed": 1.2},
-      "3":  {"cost": {"carrots": 2800, "wood": 2000, "stone": 1500}, "build_time": 200, "training_speed": 1.5},
-      "4":  {"cost": {"carrots": 6000, "wood": 4500, "stone": 3500}, "build_time": 400, "training_speed": 1.8},
-      "5":  {"cost": {"carrots": 12000,"wood": 9000, "stone": 7000}, "build_time": 600, "training_speed": 2.2}
+      "1":  {"cost": {"carrots": 500,  "wood": 400,  "stone": 300},  "build_time": 5,  "training_speed": 0.5},
+      "2":  {"cost": {"carrots": 1200, "wood": 900,  "stone": 700},  "build_time": 10, "training_speed": 0.6},
+      "3":  {"cost": {"carrots": 2800, "wood": 2000, "stone": 1500}, "build_time": 15, "training_speed": 0.7},
+      "4":  {"cost": {"carrots": 6000, "wood": 4500, "stone": 3500}, "build_time": 20, "training_speed": 0.8},
+      "5":  {"cost": {"carrots": 12000,"wood": 9000, "stone": 7000}, "build_time": 25, "training_speed": 0.9}
     }
   },
   "academy": {

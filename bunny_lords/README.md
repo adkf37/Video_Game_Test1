@@ -62,36 +62,33 @@ The `castle` building has an `"unlocks"` field per level:
 ```json
 "castle": {
   "level_bonuses": {
-    "1": { "unlocks": ["farm", "lumber_mill"] },
+    "1": { "unlocks": ["carrot_farm", "lumber_burrow"] },
     "2": { "unlocks": ["stone_quarry"] },
-    "3": { "unlocks": ["gold_mine", "warehouse"] },
-    "4": { "unlocks": ["barracks"], "description": "Unlock Troop Training!" },
+    "3": { "unlocks": ["barracks"], "description": "Unlock Troop Training!" },
+    "4": { "unlocks": ["gold_mine", "warehouse"] },
     "5": { "unlocks": ["academy", "wall"] }
   }
 }
 ```
 
-**💡 Tip:** To change when troops unlock, edit the `"4"` level entry.
+**💡 Tip:** To change when troops unlock, edit the `"3"` level entry.
 
-### Stone Quarry Click Mechanic
-**Code:** `entities/buildings.py` (lines 40-70)
+### Resource Building Click Bonus
+**Code:** `entities/buildings.py` (lines 60-75)
 
-Stone quarries require clicking 5 times every 10 seconds:
+Resource buildings give bonus rewards when clicked:
 ```python
-self.clicks_needed = 5  # Change required clicks here
-self.click_timer = 0.0
+self.click_timer = 0.0       # timer for resource buildings
+self.click_available = False # whether a bonus click is available
 ```
 
-The production logic is in the `production` property:
-```python
-@property
-def production(self) -> dict[str, float]:
-    if self.id == "stone_quarry" and self.current_clicks < self.clicks_needed:
-        return {}  # Block production until clicked enough
-    # ... normal production
-```
+Every 10 seconds, clickable resource buildings give:
+- **Carrot Farm**: +15 carrots
+- **Lumber Burrow**: +15 wood
+- **Stone Quarry**: +15 stone
+- **Gold Mine**: +15 gold
 
-**To adjust:** Change `clicks_needed` or the 10-second timer in `update()` method.
+**To adjust:** Change the bonus amount in `states/base_view.py` (line 260) or the timer interval in `entities/buildings.py` (line 119).
 
 ---
 
@@ -242,7 +239,7 @@ def can_claim_daily(self, current_time: float) -> bool:
 - **`description`**: Tooltip text
 
 ### Barracks Unlock
-Troops require the **Barracks** building, which unlocks at **Castle Level 4** (see Buildings section).
+Troops require the **Barracks** building, which unlocks at **Castle Level 3** (see Buildings section).
 
 ---
 
